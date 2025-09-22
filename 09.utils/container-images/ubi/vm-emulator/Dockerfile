@@ -37,6 +37,7 @@ RUN microdnf -y update &&\
       gettext \
       gzip \
       less \
+      procps \
       shadow-utils \
       tar \
       which \
@@ -58,4 +59,5 @@ RUN /usr/sbin/groupadd -r -g ${__group_id} ${__group_name} &&\
 
 USER ${__user_name}
 
-VOLUME [ "${__audit_home_dir}", "${__install_dir}", "${__upd_mgr_home_dir}", "${__script_dir}", ${__user_home} ]
+# TODO: for some reason this declaration does not work when the image is built with docker compose build
+# VOLUME [ "${__audit_home_dir}", "${__install_dir}", "${__upd_mgr_home_dir}", "${__script_dir}", ${__user_home} ]

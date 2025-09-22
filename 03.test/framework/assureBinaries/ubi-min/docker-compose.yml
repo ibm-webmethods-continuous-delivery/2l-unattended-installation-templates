@@ -1,0 +1,13 @@
+services:
+  d:
+    # downloader service
+    image: registry.access.redhat.com/ubi8/ubi-minimal
+    volumes:
+      - ../../../../:/mnt/WMUI
+      - ./scripts/:/mnt/scripts
+      - ../../../../local/artifacts/:/mnt/local/
+    environment:
+      - WMUI_INSTALL_INSTALLER_BIN=/mnt/local/default-installer.bin
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=/mnt/local/default-upd-mgr-bootstrap.bin
+    entrypoint: /mnt/scripts/entrypoint.sh
+
