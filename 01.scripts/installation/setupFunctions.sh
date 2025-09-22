@@ -614,6 +614,8 @@ assureDefaultUpdMgrBootstrap() {
 # $4 -> OPTIONAL - platform string, default LNXAMD64
 # $5 -> OPTIONAL - update manager home, default /tmp/upd-mgr-v11
 # $6 -> OPTIONAL - upd-mgr-bootstrap binary location, default /tmp/upd-mgr-bootstrap.bin
+# $7 -> OPTIONAL: useLatest (YES/NO), default YES. If YES, uses ProductsLatestList.txt, if NO uses ProductsVersionedList.txt
+
 # NOTE: pass SDC credentials in env variables WMUI_EMPOWER_USER and WMUI_EMPOWER_PASSWORD
 generateFixesImageFromTemplate() {
   local lCrtDate
@@ -656,12 +658,6 @@ generateFixesImageFromTemplate() {
     logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} already exists, skipping creation."
   else
     logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} does not exists, creating now."
-    huntForWmuiFile "01.scripts/pwsh" "generateInventoryFileFromInstallScript.ps1"
-
-    if [ ! -f "${WMUI_CACHE_HOME}/01.scripts/pwsh/generateInventoryFileFromInstallScript.ps1" ]; then
-      logE "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/01.scripts/pwsh/generateInventoryFileFromInstallScript.ps1 not found, cannot continue"
-      return 1
-    fi
 
     huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
 
@@ -670,9 +666,33 @@ generateFixesImageFromTemplate() {
       return 2
     fi
 
-    pwsh "${WMUI_CACHE_HOME}/01.scripts/pwsh/generateInventoryFileFromInstallScript.ps1" \
-      -file "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" -outfile "${lPermanentInventoryFile}" \
-      -sumPlatformString "${lPlatformString}"
+    # Hunt for products list files and create enhanced template
+    local lUseLatest="${7:-YES}"
+    local lProductsListFile="ProductsLatestList.txt"
+
+    if [ "${lUseLatest}" == "NO" ]; then
+      lProductsListFile="ProductsVersionedList.txt"
+    fi
+    
+    huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
+
+    if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
+      logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+      return 2
+    fi
+
+    # Parameters - generateInventoryFileFromProductsList
+    # $1 - input file path (products list file)
+    # $2 - output file path (JSON inventory file)
+    # $3 - OPTIONAL: sum version string, defaults to "10.5.0"
+    # $4 - OPTIONAL: platform string, defaults to "LNXAMD64"
+    # $5 - OPTIONAL: WMUI version string, defaults to "1005"
+    # $6 - OPTIONAL: update manager version, defaults to "11.0.0.0000-0117"
+    # $7 - OPTIONAL: platform group string, defaults to "\"UNX-ANY\",\"LNX-ANY\""
+    generateInventoryFileFromProductsList \
+      "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" \
+      "${lPermanentInventoryFile}" \
+      "" "${lPlatformString}"
   fi
 
   if [ -f "${lPermanentScriptFile}" ]; then
@@ -739,6 +759,8 @@ generateFixesImageFromTemplate() {
 # $2 -> OPTIONAL - installer binary location, default /tmp/installer.bin
 # $3 -> OPTIONAL - output folder, default /tmp/images/product
 # $4 -> OPTIONAL - platform string, default LNXAMD64
+# $5 -> OPTIONAL: useLatest (YES/NO), default YES. If YES, uses ProductsLatestList.txt, if NO uses ProductsVersionedList.txt
+
 # NOTE: default URLs for download are fit for Europe. Use the ones without "-hq" for Americas
 # NOTE: pass SDC credentials in env variables WMUI_EMPOWER_USER and WMUI_EMPOWER_PASSWORD
 # NOTE: ${WMUI_TEMP_FS_QUICK}/productsImagesList.txt may be created upfront if image caches are available
@@ -799,6 +821,24 @@ generateProductsImageFromTemplate() {
       return 1
     fi
 
+    # Hunt for products list files and create enhanced template
+    local useLatest="${5:-YES}"
+    local lProductsListFile="ProductsLatestList.txt"
+
+    if [ "${lUseLatest}" == "NO" ]; then
+      lProductsListFile="ProductsVersionedList.txt"
+    fi
+    
+    huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
+
+    if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
+      logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+      return 2
+    fi
+
+    local lProductsCsv
+    lProductsCsv=$(linesFileToCsvString "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}")
+
     logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating permanent product image creation script from template file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript "
     mkdir -p "${lProductImageOutputDir}/${1}"
     {
@@ -810,6 +850,7 @@ generateProductsImageFromTemplate() {
       echo "imagePlatform=${lPlatformString}"
       echo "imageFile=${lProductsImageFile}"
       echo "ServerURL=${lSdcServerUrl}"
+      echo "InstallProducts=${lProductsCsv}"
     } >"${lPermanentScriptFile}"
 
     logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file created"
@@ -937,38 +978,136 @@ checkSetupTemplateBasicPrerequisites() {
   fi
 }
 
-checkEmpowerCredentials(){
-  # Check if credentials are valid
-  logI "[setupFunctions.sh:checkEmpowerCredentials()] - Checking if provided Empower credentials are valid..."
+# Parameters - generateInventoryFileFromProductsList
+# $1 - input file path (products list file)
+# $2 - output file path (JSON inventory file)
+# $3 - OPTIONAL: sum version string, defaults to "10.5.0"
+# $4 - OPTIONAL: platform string, defaults to "LNXAMD64"
+# $5 - OPTIONAL: WMUI version string, defaults to "1005"
+# $6 - OPTIONAL: update manager version, defaults to "11.0.0.0000-0117"
+# $7 - OPTIONAL: platform group string, defaults to "\"UNX-ANY\",\"LNX-ANY\""
+generateInventoryFileFromProductsList() {
+  local inputFile="${1}"
+  local outputFile="${2}"
+  local sumVersionString="${3:-10.5.0}"
+  local sumPlatformString="${4:-LNXAMD64}"
+  local wmuiVersionString="${5:-1005}"
+  local updateManagerVersion="${6:-11.0.0.0000-0117}"
+  local sumPlatformGroupString="${7:-\"UNX-ANY\",\"LNX-ANY\"}"
 
-  if ! which curl > /dev/null; then
-    logE "[setupFunctions.sh:checkEmpowerCredentials()] - Cannot find curl"
+  # Check required parameters
+  if [ -z "$inputFile" ] || [ -z "$outputFile" ]; then
+    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Both input file and output file are required"
     return 1
   fi
 
-  resultJson=$(
-  curl --location --request POST 'https://sdc.softwareag.com/services/auth' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{"username": "'"${WMUI_EMPOWER_USER}"'","password": "'"${WMUI_EMPOWER_PASSWORD}"'"}' \
-  2> /dev/null
-  )
-  resultCurl=$?
-  if [ ! ${resultCurl} -eq 0 ]; then
-    logE "[setupFunctions.sh:checkEmpowerCredentials()] - Getting token for user ${WMUI_EMPOWER_USER}: curl failed with result ${resultCurl}; cannot continue"
+  # Check if input file exists
+  if [ ! -f "$inputFile" ]; then
+    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Input file '$inputFile' does not exist"
     return 2
   fi
 
- if [ "a${resultJson%% *}b" = "ab" ]; then
-  logE "setupFunctions.sh:checkEmpowerCredentials()] - Getting token for user ${WMUI_EMPOWER_USER}: curl returned an empty string"
-  return 4
- fi
+  # Read all non-empty lines from the products list file
+  local productLines
+  productLines=$(grep -v '^[[:space:]]*$' "$inputFile")
 
-  if [ -n "${resultJson##*access_token*}" ]; then
-    logE "[setupFunctions.sh:checkEmpowerCredentials()] - Provided credentials are incorrect, cannot continue. Result of attempted Empower login with user ${WMUI_EMPOWER_USER} is: ${resultJson}"
+  if [ -z "$productLines" ]; then
+    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products found in file '$inputFile'"
     return 3
   fi
 
-  logI "[setupFunctions.sh:checkEmpowerCredentials()] - Provided Empower credentials are valid"
+  # Create temporary files for processing
+  local tempDir
+  tempDir=$(mktemp -d)
+  local productsFile="$tempDir/products.tmp"
+  
+  # Cleanup function
+  cleanup() {
+    rm -rf "$tempDir"
+  }
+  trap cleanup EXIT
+
+  # Process each product line
+  echo "$productLines" | while IFS= read -r productLine; do
+    # Parse format: e2ei/11/PRODUCT_VERSION.LATEST/Category/ProductCode
+    # Use parameter expansion to split the path
+    local remaining="$productLine"
+    local part1="${remaining%%/*}"; remaining="${remaining#*/}"
+    local part2="${remaining%%/*}"; remaining="${remaining#*/}"
+    local versionPart="${remaining%%/*}"; remaining="${remaining#*/}"
+    local part4="${remaining%%/*}"; remaining="${remaining#*/}"
+    local productCode="$remaining"
+    
+    if [ -n "$productCode" ] && [ -n "$versionPart" ]; then
+      # Clean up product_code (remove any trailing whitespace or newlines)
+      productCode=$(printf '%s' "$productCode" | tr -d '\n\r' | sed 's/[[:space:]]*$//')
+      
+      # Extract version from format like "PRODUCT_11.1.0.0.LATEST"
+      # Use sed to extract version pattern
+      local productVersion
+      productVersion=$(echo "$versionPart" | sed -n 's/.*_\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\..*$/\1/p')
+      
+      # If version extraction failed, use default
+      if [ -z "$productVersion" ]; then
+        productVersion="$sumVersionString"
+      fi
+      
+      # Store product code and version (using unique keys)
+      echo "$productCode:$productVersion" >> "$productsFile"
+    fi
+  done
+
+  # Check if any products were processed
+  if [ ! -f "$productsFile" ] || [ ! -s "$productsFile" ]; then
+    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products could be parsed from file '$inputFile'"
+    cleanup
+    return 4
+  fi
+
+  # Function to escape JSON strings
+  escape_json() {
+    # Remove any trailing newlines and escape JSON special characters
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr -d '\n'
+  }
+
+  # Generate JSON output
+  {
+    echo "{"
+    echo "    \"installedProducts\": ["
+    
+    # Process unique products and generate JSON entries
+    sort -u "$productsFile" | {
+      local first=true
+      while IFS=: read -r productId productVersion; do
+        if [ "$first" = true ]; then
+          first=false
+        else
+          echo ","
+        fi
+        echo "        {"
+        echo "            \"productId\": \"$(escape_json "$productId")\","
+        echo "            \"version\": \"$(escape_json "$productVersion")\","
+        echo "            \"displayName\": \"$(escape_json "$productId")\""
+        printf "        }"
+      done
+      echo ""
+    }
+    
+    echo "    ],"
+    echo "    \"installedFixes\": [],"
+    echo "    \"installedSupportPatches\": [],"
+    echo "    \"envVariables\": {"
+    echo "        \"platformGroup\": [$sumPlatformGroupString],"
+    echo "        \"UpdateManagerVersion\": \"$updateManagerVersion\","
+    echo "        \"Hostname\": \"localhost\","
+    echo "        \"platform\": \"$sumPlatformString\""
+    echo "    }"
+    echo "}"
+  } > "$outputFile"
+
+  cleanup
+  logI "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Successfully generated inventory file: $outputFile"
+  return 0
 }
 
 setupFunctionsSourced(){

@@ -49,7 +49,7 @@ init() {
   else
     # by default use master branch
     export WMUI_HOME_URL="${WMUI_HOME_URL:-"https://raw.githubusercontent.com/SoftwareAG/sag-unattended-installations/main"}"
-    export WMUI_CACHE_HOME="${WMUI_CACHE_HOME:-"/tmp/suifCacheHome"}"
+    export WMUI_CACHE_HOME="${WMUI_CACHE_HOME:-"/tmp/wmuiCacheHome"}"
     mkdir -p "${WMUI_CACHE_HOME}"
   fi
 

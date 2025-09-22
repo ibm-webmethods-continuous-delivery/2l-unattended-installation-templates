@@ -1,0 +1,11 @@
+services:
+  d:
+    # test service for generateInventoryFromProducts.sh
+    image: alpine
+    volumes:
+      - ../../../../:/mnt/WMUI
+      - ./scripts/:/mnt/scripts
+      - ./local/:/mnt/test/
+    environment:
+      - WMUI_COLORIZED_OUTPUT=1
+    entrypoint: /mnt/scripts/entrypoint.sh

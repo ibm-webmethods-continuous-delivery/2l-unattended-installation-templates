@@ -11,7 +11,6 @@ services:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
         - __audit_home_dir=${WMUI_AUDIT_HOME}
-        - __install_dir=${WMUI_INSTALL_HOME}
         - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
         - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
         - __user_home=${WMUI_USER_HOME}
@@ -28,8 +27,8 @@ services:
       - ${H_WMUI_HOME}:/mnt/WMUI_HOME
       # These must be provided, they are prerequisites
       - ${H_LICENSES_FOLDER}/:/mnt/sag-licenses/
-      - ${H_WMUI_SUM_BOOTSTRAP_BIN}:/mnt/upd-mgr-bootstrap.bin
-      - ${H_WMUI_INSTALLER_BIN}:/mnt/installer.bin
+      - ${H_WMUI_SUM_BOOTSTRAP_BIN}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+      - ${H_WMUI_INSTALLER_BIN}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
       - ${H_OUTPUT_FOLDER}:/mnt/output
     environment:
       # commonFunctions
