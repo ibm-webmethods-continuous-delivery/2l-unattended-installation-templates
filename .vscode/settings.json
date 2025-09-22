@@ -1,9 +1,20 @@
 {
   "workbench.colorTheme": "Tomorrow Night Blue",
   "cSpell.words": [
+    "buildx",
+    "dataserveweb",
+    "dbpass",
+    "diagnoser",
+    "envsubst",
+    "LNXAMD",
     "microdnf",
+    "pwsh",
     "Serverdiagnostic",
     "Serversecure",
+    "stty",
+    "urldecode",
+    "urlencode",
+    "urlencodepipe",
     "webmethods",
     "WMSCRIPT",
     "WMUI"

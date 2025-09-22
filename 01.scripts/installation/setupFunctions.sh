@@ -26,17 +26,17 @@ init() {
   export WMUI_INSTALL_IMAGE_FILE="${WMUI_INSTALL_IMAGE_FILE:-/path/to/install/product.image.zip}"
   export WMUI_PATCH_AVAILABLE="${WMUI_PATCH_AVAILABLE:-0}"
   ## Framework - Patch
-  export WMUI_PATCH_SUM_BOOTSTRAP_BIN="${WMUI_PATCH_SUM_BOOTSTRAP_BIN:-/tmp/sum-bootstrap.bin}"
+  export WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
   export WMUI_PATCH_FIXES_IMAGE_FILE="${WMUI_PATCH_FIXES_IMAGE_FILE:-/path/to/install/fixes.image.zip}"
 
   # Section 2 - the caller MAY provide
   ## Framework - Install
-  export WMUI_INSTALL_INSTALL_DIR="${WMUI_INSTALL_INSTALL_DIR:-/opt/sag/products}"
+  export WMUI_INSTALL_INSTALL_DIR="${WMUI_INSTALL_INSTALL_DIR:-/opt/webmethods/products}"
   export WMUI_INSTALL_SPM_HTTPS_PORT="${WMUI_INSTALL_SPM_HTTPS_PORT:-9083}"
   export WMUI_INSTALL_SPM_HTTP_PORT="${WMUI_INSTALL_SPM_HTTP_PORT:-9082}"
   export WMUI_INSTALL_DECLARED_HOSTNAME="${WMUI_INSTALL_DECLARED_HOSTNAME:-localhost}"
   ## Framework - Patch
-  export WMUI_SUM_HOME="${WMUI_SUM_HOME:-/opt/sag/sum}"
+  export WMUI_UPD_MGR_HOME="${WMUI_UPD_MGR_HOME:-/opt/webmethods/upd-mgr}"
 
   ## Section 3 - Extra portability
   export WMUI_TEMP_FS_QUICK="${WMUI_TEMP_FS_QUICK:-/dev/shm}"
@@ -52,7 +52,7 @@ export WMUI_SDC_ONLINE_MODE="${WMUI_SDC_ONLINE_MODE:-0}" # default if offline fo
 # Parameters - installProducts
 # $1 - installer binary file
 # $2 - script file for installer
-# $3 - OPIONAL: debugLevel for installer
+# $3 - OPTIONAL: debugLevel for installer
 installProducts() {
 
   if [ ! -f "${1}" ]; then
@@ -74,7 +74,7 @@ installProducts() {
 
   local debugLevel="${3:-"verbose"}"
   local d
-  d=$(date +%y-%m-%dT%H.%M.%S_%3N)
+  d=$(date +%Y-%m-%dT%H.%M.%S_%3N)
   local tempInstallScript="${WMUI_TEMP_FS_QUICK}/install.wmscript"
 
   # apply environment substitutions
@@ -107,82 +107,82 @@ installProducts() {
   rm -f "${tempInstallScript}"
 }
 
-# Parameters - bootstrapSum
-# $1 - Update Manager Boostrap file
+# Parameters - bootstrapUpdMgr
+# $1 - Update Manager Bootstrap file
 # $2 - Fixes image file, mandatory for offline mode
-# $3 - OTPIONAL Where to install (SUM Home), default /opt/sag/sum
-bootstrapSum() {
+# $3 - OPTIONAL Where to install (SUM Home), default /opt/webmethods/upd-mgr
+bootstrapUpdMgr() {
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:bootstrapSum()] - Software AG Update Manager boostrap file not found: ${1}"
+    logE "[setupFunctions.sh:bootstrapUpdMgr()] - Software AG Update Manager Bootstrap file not found: ${1}"
     return 1
   fi
 
   if [ "${WMUI_SDC_ONLINE_MODE}" -eq 0 ]; then
     if [ ! -f "${2}" ]; then
-      logE "[setupFunctions.sh:bootstrapSum()] - Fixes image file not found: ${2}"
+      logE "[setupFunctions.sh:bootstrapUpdMgr()] - Fixes image file not found: ${2}"
       return 2
     fi
   fi
 
-  local SUM_HOME="${3:-"/opt/sag/sum"}"
+  local UPD_MGR_HOME="${3:-"/opt/webmethods/upd-mgr"}"
 
-  if [ -d "${SUM_HOME}/UpdateManager" ]; then
-    logI "[setupFunctions.sh:bootstrapSum()] - Update manager already present, skipping bootstrap, attempting to update from given image..."
-    patchSum "${2}" "${SUM_HOME}"
+  if [ -d "${UPD_MGR_HOME}/UpdateManager" ]; then
+    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Update manager already present, skipping bootstrap, attempting to update from given image..."
+    patchUpdMgr "${2}" "${UPD_MGR_HOME}"
     return 0
   fi
 
   local d
-  d=$(date +%y-%m-%dT%H.%M.%S_%3N)
+  d=$(date +%Y-%m-%dT%H.%M.%S_%3N)
 
-  local bootstrapCmd="${1} --accept-license -d "'"'"${SUM_HOME}"'"'
+  local bootstrapCmd="${1} --accept-license -d "'"'"${UPD_MGR_HOME}"'"'
   if [ "${WMUI_SDC_ONLINE_MODE}" -eq 0 ]; then
     bootstrapCmd="${bootstrapCmd} -i ${2}"
     # note: everything is always offline except this, as it is not requiring empower credentials
-    logI "[setupFunctions.sh:bootstrapSum()] - Bootstrapping SUM from ${1} using image ${2} into ${SUM_HOME}..."
+    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} using image ${2} into ${UPD_MGR_HOME}..."
   else
-    logI "[setupFunctions.sh:bootstrapSum()] - Bootstrapping SUM from ${1} into ${SUM_HOME} using ONLINE mode"
+    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} into ${UPD_MGR_HOME} using ONLINE mode"
   fi
-  controlledExec "${bootstrapCmd}" "${d}.sum-bootstrap"
+  controlledExec "${bootstrapCmd}" "${d}.upd-mgr-bootstrap"
   RESULT_controlledExec=$?
 
   if [ ${RESULT_controlledExec} -eq 0 ]; then
-    logI "[setupFunctions.sh:bootstrapSum()] - SUM Bootstrap successful"
+    logI "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap successful"
   else
-    logE "[setupFunctions.sh:bootstrapSum()] - SUM Boostrap failed, code ${RESULT_controlledExec}"
+    logE "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap failed, code ${RESULT_controlledExec}"
     return 3
   fi
 }
 
-# Parameters - patchSum()
+# Parameters - patchUpdMgr()
 # $1 - Fixes Image (this will allways happen offline in this framework)
-# $2 - OTPIONAL SUM Home, default /opt/sag/sum
-patchSum() {
+# $2 - OPTIONAL UPD_MGR Home, default /opt/webmethods/upd-mgr
+patchUpdMgr() {
   if [ "${WMUI_SDC_ONLINE_MODE}" -ne 0 ]; then
-    logI "[setupFunctions.sh:patchSum()] - patchSum() ignored in online mode"
+    logI "[setupFunctions.sh:patchUpdMgr()] - patchUpdMgr() ignored in online mode"
     return 0
   fi
 
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:patchSum()] - Fixes images file ${1} does not exist!"
+    logE "[setupFunctions.sh:patchUpdMgr()] - Fixes images file ${1} does not exist!"
   fi
-  local SUM_HOME="${2:-'/opt/sag/sum'}"
+  local UPD_MGR_HOME="${2:-'/opt/webmethods/upd-mgr'}"
   local d
   d="$(date +%y-%m-%dT%H.%M.%S_%3N)"
 
-  if [ ! -d "${SUM_HOME}/UpdateManager" ]; then
-    logI "[setupFunctions.sh:patchSum()] - Update manager missing, nothing to patch..."
+  if [ ! -d "${UPD_MGR_HOME}/UpdateManager" ]; then
+    logI "[setupFunctions.sh:patchUpdMgr()] - Update manager missing, nothing to patch..."
     return 0
   fi
 
-  logI "[setupFunctions.sh:patchSum()] - Updating SUM from image ${1} ..."
+  logI "[setupFunctions.sh:patchUpdMgr()] - Updating UPD_MGR from image ${1} ..."
   local crtDir
   crtDir=$(pwd)
-  cd "${SUM_HOME}/bin" || return 2
-  controlledExec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "${d}.PatchSum"
+  cd "${UPD_MGR_HOME}/bin" || return 2
+  controlledExec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "${d}.patchUpdMgr"
   RESULT_controlledExec=$?
   if [ "${RESULT_controlledExec}" -ne 0 ]; then
-    logE "[setupFunctions.sh:patchSum()] - Update Manager Self Update failed with code ${RESULT_controlledExec}"
+    logE "[setupFunctions.sh:patchUpdMgr()] - Update Manager Self Update failed with code ${RESULT_controlledExec}"
     return 1
   fi
   cd "${crtDir}" || return 3
@@ -191,15 +191,15 @@ patchSum() {
 # Parameters - removeDiagnoserPatch
 # $1 - Engineering patch diagnoser key (e.g. "5437713_PIE-68082_5")
 # $2 - Engineering patch ids list (expected one id only, but we never know e.g. "5437713_PIE-68082_1.0.0.0005-0001")
-# $3 - OTPIONAL SUM Home, default /opt/sag/sum
-# $4 - OTPIONAL Products Home, default /opt/sag/products
+# $3 - OPTIONAL UPD_MGR Home, default /opt/webmethods/upd-mgr
+# $4 - OPTIONAL Products Home, default /opt/webmethods/products
 removeDiagnoserPatch() {
-  local SUM_HOME="${3:-"/opt/sag/sum"}"
-  if [ ! -f "${SUM_HOME}/bin/UpdateManagerCMD.sh" ]; then
-    logE "[setupFunctions.sh:removeDiagnoserPatch()] - Update manager not found at the inficated location ${SUM_HOME}"
+  local UPD_MGR_HOME="${3:-"/opt/webmethods/upd-mgr"}"
+  if [ ! -f "${UPD_MGR_HOME}/bin/UpdateManagerCMD.sh" ]; then
+    logE "[setupFunctions.sh:removeDiagnoserPatch()] - Update manager not found at the indicated location ${UPD_MGR_HOME}"
     return 1
   fi
-  local PRODUCTS_HOME="${4:-"/opt/sag/products"}"
+  local PRODUCTS_HOME="${4:-"/opt/webmethods/products"}"
   if [ ! -d "${PRODUCTS_HOME}" ]; then
     logE "[setupFunctions.sh:removeDiagnoserPatch()] - Product installation folder is missing: ${PRODUCTS_HOME}"
     return 2
@@ -219,12 +219,12 @@ removeDiagnoserPatch() {
 
   local crtDir
   crtDir=$(pwd)
-  cd "${SUM_HOME}/bin" || return 4
+  cd "${UPD_MGR_HOME}/bin" || return 4
 
   logI "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of existing fixes..."
   controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesBeforeSPRemoval"
 
-  logI "[setupFunctions.sh:removeDiagnoserPatch()] - Removing support patch ${1} from installation ${PRODUCTS_HOME} using SUM in ${SUM_HOME}..."
+  logI "[setupFunctions.sh:removeDiagnoserPatch()] - Removing support patch ${1} from installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
   controlledExec "./UpdateManagerCMD.sh -readScript \"${tmpScriptFile}\"" "${d}.SPFixRemoval"
   RESULT_controlledExec=$?
 
@@ -240,8 +240,8 @@ removeDiagnoserPatch() {
     if [ "${WMUI_DEBUG_ON}" ]; then
       logD "Recovering Update Manager logs for further investigations"
       mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
-      cp -r "${SUM_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
-      cp -r "${SUM_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
+      cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
+      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
       cp "${tmpScriptFile}" "${WMUI_AUDIT_SESSION_DIR}"/
     fi
     return 3
@@ -256,19 +256,19 @@ removeDiagnoserPatch() {
 }
 
 # Parameters - patchInstallation
-# $1 - Fixes Image (this will allways happen offline in this framework)
-# $2 - OTPIONAL SUM Home, default /opt/sag/sum
-# $3 - OTPIONAL Products Home, default /opt/sag/products
-# $4 - OTPIONAL Engineering patch modifier (default "N")
-# $5 - OTPIONAL Engineering patch diagnoser key (default "5437713_PIE-68082_5", however user must provide if $4=Y)
+# $1 - Fixes Image (this will always happen offline in this framework)
+# $2 - OPTIONAL UPD_MGR Home, default /opt/webmethods/upd-mgr
+# $3 - OPTIONAL Products Home, default /opt/webmethods/products
+# $4 - OPTIONAL Engineering patch modifier (default "N")
+# $5 - OPTIONAL Engineering patch diagnoser key (default "5437713_PIE-68082_5", however user must provide if $4=Y)
 patchInstallation() {
   if [ ! -f "${1}" ]; then
     logE "[setupFunctions.sh:patchInstallation()] - Fixes image file not found: ${1}"
     return 1
   fi
 
-  local SUM_HOME="${2:-"/opt/sag/sum"}"
-  local PRODUCTS_HOME="${3:-"/opt/sag/products"}"
+  local UPD_MGR_HOME="${2:-"/opt/webmethods/upd-mgr"}"
+  local PRODUCTS_HOME="${3:-"/opt/webmethods/products"}"
   local d
   d=$(date +%y-%m-%dT%H.%M.%S_%3N)
   local epm="${4:-"N"}"
@@ -288,15 +288,15 @@ patchInstallation() {
 
   local crtDir
   crtDir=$(pwd)
-  cd "${SUM_HOME}/bin" || return 3
+  cd "${UPD_MGR_HOME}/bin" || return 3
 
   logI "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of existing fixes..."
   controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesBeforePatching"
 
-  logI "[setupFunctions.sh:patchInstallation()] - Explictly patch SUM itself, if required..."
-  patchSum "${1}" "${SUM_HOME}"
+  logI "[setupFunctions.sh:patchInstallation()] - Explicitly patch UPD_MGR itself, if required..."
+  patchUpdMgr "${1}" "${UPD_MGR_HOME}"
 
-  logI "[setupFunctions.sh:patchInstallation()] - Applying fixes from image ${1} to installation ${PRODUCTS_HOME} using SUM in ${SUM_HOME}..."
+  logI "[setupFunctions.sh:patchInstallation()] - Applying fixes from image ${1} to installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
 
   controlledExec "./UpdateManagerCMD.sh -readScript \"${fixesScriptFile}\"" "${d}.PatchInstallation"
   RESULT_controlledExec=$?
@@ -313,8 +313,8 @@ patchInstallation() {
     if [ "${WMUI_DEBUG_ON}" ]; then
       logD "[setupFunctions.sh:patchInstallation()] - Recovering Update Manager logs for further investigations"
       mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
-      cp -r "${SUM_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
-      cp -r "${SUM_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
+      cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
+      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
       cp "${fixesScriptFile}" "${WMUI_AUDIT_SESSION_DIR}"/
     fi
     return 2
@@ -331,9 +331,9 @@ patchInstallation() {
 # Parameters - setupProductsAndFixes
 # $1 - Installer binary file
 # $2 - Script file for installer
-# $3 - Update Manager Boostrap file
-# $4 - Fixes Image (this will allways happen offline in this framework)
-# $5 - OTPIONAL Where to install (SUM Home), default /opt/sag/sum
+# $3 - Update Manager Bootstrap file
+# $4 - Fixes Image (this will always happen offline in this framework)
+# $5 - OPTIONAL Where to install (SUM Home), default /opt/webmethods/upd-mgr
 # $6 - OPTIONAL: debugLevel for installer
 setupProductsAndFixes() {
 
@@ -395,7 +395,7 @@ setupProductsAndFixes() {
       # Parameters - installProducts
       # $1 - installer binary file
       # $2 - script file for installer
-      # $3 - OPIONAL: debugLevel for installer
+      # $3 - OPTIONAL: debugLevel for installer
       installProducts "${1}" "${2}" "${installerDebugLevel}"
       RESULT_installProducts=$?
       if [ ${RESULT_installProducts} -ne 0 ]; then
@@ -405,21 +405,21 @@ setupProductsAndFixes() {
 
         if [ "${WMUI_PATCH_AVAILABLE}" -ne 0 ]; then
 
-          # Parameters - bootstrapSum
-          # $1 - Update Manager Boostrap file
-          # $2 - OTPIONAL Where to install (SUM Home), default /opt/sag/sum
-          local lSumHome="${5:-/opt/sag/sum}"
-          bootstrapSum "${3}" "${4}" "${lSumHome}"
-          local RESULT_bootstrapSum=$?
-          if [ ${RESULT_bootstrapSum} -ne 0 ]; then
-            logE "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap failed, code ${RESULT_bootstrapSum}!"
+          # Parameters - bootstrapUpdMgr
+          # $1 - Update Manager Bootstrap file
+          # $2 - OPTIONAL Where to install (SUM Home), default /opt/webmethods/upd-mgr
+          local lUpdMgrHome="${5:-/opt/webmethods/upd-mgr}"
+          bootstrapUpdMgr "${3}" "${4}" "${lUpdMgrHome}"
+          local RESULT_bootstrapUpdMgr=$?
+          if [ ${RESULT_bootstrapUpdMgr} -ne 0 ]; then
+            logE "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap failed, code ${RESULT_bootstrapUpdMgr}!"
             RESULT_setupProductsAndFixes=9
           else
             # Parameters - patchInstallation
-            # $1 - Fixes Image (this will allways happen offline in this framework)
-            # $2 - OTPIONAL SUM Home, default /opt/sag/sum
-            # $3 - OTPIONAL Products Home, default /opt/sag/products
-            patchInstallation "${4}" "${lSumHome}" "${lInstallDir}"
+            # $1 - Fixes Image (this will always happen offline in this framework)
+            # $2 - OPTIONAL UPD_MGR Home, default /opt/webmethods/upd-mgr
+            # $3 - OPTIONAL Products Home, default /opt/webmethods/products
+            patchInstallation "${4}" "${lUpdMgrHome}" "${lInstallDir}"
             RESULT_patchInstallation=$?
             if [ ${RESULT_patchInstallation} -ne 0 ]; then
               logE "[setupFunctions.sh:setupProductsAndFixes()] - Patch Installation failed, code ${RESULT_patchInstallation}!"
@@ -442,16 +442,60 @@ setupProductsAndFixes() {
 
 # Parameters - applySetupTemplate
 # $1 - Setup template directory, relative to <repo_home>/02.templates/01.setup
-# Environment must have valid values for vars WMUI_CACHE_HOME, WMUI_INSTALL_INSTALLER_BIN, WMUI_PATCH_SUM_BOOTSTRAP_BIN, WMUI_SUM_HOME
+# $2 - OPTIONAL: useLatest (YES/NO), default YES. If YES, uses ProductsLatestList.txt, if NO uses ProductsVersionedList.txt
+# Environment must have valid values for vars WMUI_CACHE_HOME, WMUI_INSTALL_INSTALLER_BIN, WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN, WMUI_UPD_MGR_HOME
 # Environment must also have valid values for the vars required by the referred template
 applySetupTemplate() {
   # TODO: render checkPrerequisites.sh optional
   logI "[setupFunctions.sh:applySetupTemplate()] - Applying Setup Template ${1}"
-  huntForSuifFile "02.templates/01.setup/${1}" "template.wmscript" || return 1
+  huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript" || return 1
+
+  # Hunt for products list files and create enhanced template
+  local useLatest="${2:-YES}"
+  local productsListFile
+  
+  if [ "${useLatest}" = "NO" ]; then
+    productsListFile="ProductsVersionedList.txt"
+  else
+    productsListFile="ProductsLatestList.txt"
+  fi
+  
+  huntForWmuiFile "02.templates/01.setup/${1}" "${productsListFile}" || return 2
+  
+  if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" ]; then
+    logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+    return 2
+  fi
+  
+  # Create temporary enhanced template with InstallProducts line
+  local d
+  d=$(date +%Y-%m-%dT%H.%M.%S_%3N)
+  local tempEnhancedTemplate="${WMUI_AUDIT_SESSION_DIR}/template_enhanced_${d}.wmscript"
+  
+  # Copy original template
+  cp "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" "${tempEnhancedTemplate}"
+  
+  # Create sorted CSV from products list and append to template
+  local productsListSorted="${WMUI_AUDIT_SESSION_DIR}/products_sorted_${d}.tmp"
+  sort "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" > "${productsListSorted}"
+  local productsCsv
+  productsCsv=$(linesFileToCsvString "${productsListSorted}")
+  local RESULT_linesFileToCsvString=$?
+  
+  if [ ${RESULT_linesFileToCsvString} -ne 0 ]; then
+    logE "[setupFunctions.sh:applySetupTemplate()] - Failed to create CSV string from products list"
+    rm -f "${productsListSorted}" "${tempEnhancedTemplate}"
+    return 3
+  fi
+  
+  echo "InstallProducts=${productsCsv}" >> "${tempEnhancedTemplate}"
+  rm -f "${productsListSorted}"
+  
+  logI "[setupFunctions.sh:applySetupTemplate()] - Created enhanced template with $(wc -l < "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}") products from ${productsListFile}"
 
   # environment defaults for setup
   logI "[setupFunctions.sh:applySetupTemplate()] - Sourcing variable values for template ${1} ..."
-  huntForSuifFile "02.templates/01.setup/${1}" "setEnvDefaults.sh" 
+  huntForWmuiFile "02.templates/01.setup/${1}" "setEnvDefaults.sh" 
   if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh" ]; then
     logI "[setupFunctions.sh:applySetupTemplate()] - Template ${1} does not have any default variable values, file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh has not been provided."
   else
@@ -461,10 +505,15 @@ applySetupTemplate() {
     . "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh"
   fi
   
-  checkSetupTemplateBasicPrerequisites || return 4
+  checkSetupTemplateBasicPrerequisites
+  local RESULT_checkSetupTemplateBasicPrerequisites=$?
+  if [ ${RESULT_checkSetupTemplateBasicPrerequisites} -ne 0 ]; then
+    logE "[setupFunctions.sh:applySetupTemplate()] - Basic prerequisites check failed with code ${RESULT_checkSetupTemplateBasicPrerequisites}"
+    return 100
+  fi
 
   ### Eventually check prerequisites
-  huntForSuifFile "02.templates/01.setup/${1}" "checkPrerequisites.sh" || logI 
+  huntForWmuiFile "02.templates/01.setup/${1}" "checkPrerequisites.sh" || logI 
   if [ -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" ]; then
     logI "[setupFunctions.sh:applySetupTemplate()] - Checking installation prerequisites for template ${1} ..."
     chmod u+x "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" >/dev/null
@@ -476,15 +525,19 @@ applySetupTemplate() {
   logI "[setupFunctions.sh:applySetupTemplate()] - Setting up products and fixes for template ${1} ..."
   setupProductsAndFixes \
     "${WMUI_INSTALL_INSTALLER_BIN}" \
-    "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" \
-    "${WMUI_PATCH_SUM_BOOTSTRAP_BIN}" \
+    "${tempEnhancedTemplate}" \
+    "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" \
     "${WMUI_PATCH_FIXES_IMAGE_FILE}" \
-    "${WMUI_SUM_HOME}" \
+    "${WMUI_UPD_MGR_HOME}" \
     "verbose"
   local RESULT_setupProductsAndFixes=$?
+  
+  # Clean up temporary enhanced template
+  rm -f "${tempEnhancedTemplate}"
+  
   if [ ${RESULT_setupProductsAndFixes} -ne 0 ]; then
     logE "[setupFunctions.sh:applySetupTemplate()] - Setup for template ${1} failed, code ${RESULT_setupProductsAndFixes}"
-    return 3
+    return 4
   fi
 }
 
@@ -528,8 +581,8 @@ assureDownloadableFile() {
 # Parameters
 # $1 - OPTIONAL installer binary location, defaulted to ${WMUI_INSTALL_INSTALLER_BIN}, which is also defaulted to /tmp/installer.bin
 assureDefaultInstaller() {
-  local installerUrl="https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-Linux_x86_64.bin"
-  local installerSha256Sum="2cdb193d718423e6514cf66543185887d9963836779d97b1e07e80801dab2efc"
+  local installerUrl="https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/0/IBM_webMethods_Install_Linux_x64.bin"
+  local installerSha256Sum="46f725e9f0668945912944b0c3d562d9a39274942b530b72b1b08494a1044099"
   WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
   local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
   if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
@@ -540,17 +593,17 @@ assureDefaultInstaller() {
 }
 
 # Parameters
-# $1 - OPTIONAL SUM bootstrap binary location, defaulted to ${WMUI_PATCH_SUM_BOOTSTRAP_BIN}, which is also defaulted to /tmp/sum-bootstrap.bin
-assureDefaultSumBoostrap() {
-  local sumBoostrapUrl="https://empowersdc.softwareag.com/ccinstallers/SoftwareAGUpdateManagerInstaller20231121-11-LinuxX86.bin"
-  local sumBoostrapSha256Sum="b4f2d131512255c60bd5246c07129cdcf653acfa6fecf34ce7e98f060e6ee26a"
-  WMUI_PATCH_SUM_BOOTSTRAP_BIN="${WMUI_PATCH_SUM_BOOTSTRAP_BIN:-/tmp/sum-bootstrap.bin}"
-  local lSumBootstrap="${1:-$WMUI_PATCH_SUM_BOOTSTRAP_BIN}"
-  if ! assureDownloadableFile "${lSumBootstrap}" "${sumBoostrapUrl}" "${sumBoostrapSha256Sum}"; then
-    logE "[setupFunctions.sh:assureDefaultSumBoostrap()] - Cannot assure default sum bootstrap!"
+# $1 - OPTIONAL UPD_MGR bootstrap binary location, defaulted to ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}, which is also defaulted to /tmp/upd-mgr-bootstrap.bin
+assureDefaultUpdMgrBootstrap() {
+  local updMgrBootstrapUrl="https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin"
+  local updMgrBootstrapSha256Sum="a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55"
+  WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
+  local lUpdMgrBootstrap="${1:-$WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
+  if ! assureDownloadableFile "${lUpdMgrBootstrap}" "${updMgrBootstrapUrl}" "${updMgrBootstrapSha256Sum}"; then
+    logE "[setupFunctions.sh:assureDefaultUpdMgrBootstrap()] - Cannot assure default sum bootstrap!"
     return 1
   fi
-  chmod u+x "${lSumBootstrap}"
+  chmod u+x "${lUpdMgrBootstrap}"
 }
 
 # TODO: generalize
@@ -559,8 +612,8 @@ assureDefaultSumBoostrap() {
 # $2 -> OPTIONAL - output folder, default /tmp/images/product
 # $3 -> OPTIONAL - fixes tag. Defaulted to current day
 # $4 -> OPTIONAL - platform string, default LNXAMD64
-# $5 -> OPTIONAL - sum home, default /tmp/sumv11
-# $6 -> OPTIONAL - sum-bootstrap binary location, default /tmp/sum-bootstrap.bin
+# $5 -> OPTIONAL - update manager home, default /tmp/upd-mgr-v11
+# $6 -> OPTIONAL - upd-mgr-bootstrap binary location, default /tmp/upd-mgr-bootstrap.bin
 # NOTE: pass SDC credentials in env variables WMUI_EMPOWER_USER and WMUI_EMPOWER_PASSWORD
 generateFixesImageFromTemplate() {
   local lCrtDate
@@ -583,19 +636,19 @@ generateFixesImageFromTemplate() {
     return 0
   fi
 
-  local lSumHome="${5:-/tmp/sumv11}"
-  if [ ! -d "${lSumHome}/bin" ]; then
-    logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - SUM Home does not contain a SUM installation, trying to bootstrap now..."
-    local lSumBootstrapBin="${6:-/tmp/sum-bootstrap.bin}"
-    if [ ! -f "${lSumBootstrapBin}" ]; then
-      logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - SUM Bootstrap binary not found, trying to obtain the default one..."
-      assureDefaultSumBoostrap "${lSumBootstrapBin}" || return $?
-      # Parameters - bootstrapSum
-      # $1 - Update Manager Boostrap file
+  local lUpdMgrHome="${5:-/tmp/upd-mgr-v11}"
+  if [ ! -d "${lUpdMgrHome}/bin" ]; then
+    logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Home does not contain a UPD_MGR installation, trying to bootstrap now..."
+    local lUpdMgrBootstrapBin="${6:-/tmp/upd-mgr-bootstrap.bin}"
+    if [ ! -f "${lUpdMgrBootstrapBin}" ]; then
+      logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Bootstrap binary not found, trying to obtain the default one..."
+      assureDefaultUpdMgrBootstrap "${lUpdMgrBootstrapBin}" || return $?
+      # Parameters - bootstrapUpdMgr
+      # $1 - Update Manager Bootstrap file
       # $2 - Fixes image file, mandatory for offline mode
-      # $3 - OTPIONAL Where to install (SUM Home), default /opt/sag/sum
+      # $3 - OPTIONAL Where to install (UPD_MGR Home), default /opt/webmethods/upd-mgr
       # NOTE: WMUI_SDC_ONLINE_MODE must be 1 (non 0)
-      bootstrapSum "${lSumBootstrapBin}" '' "${lSumHome}" || return $?
+      bootstrapUpdMgr "${lUpdMgrBootstrapBin}" '' "${lUpdMgrHome}" || return $?
     fi
   fi
 
@@ -603,14 +656,14 @@ generateFixesImageFromTemplate() {
     logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} already exists, skipping creation."
   else
     logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} does not exists, creating now."
-    huntForSuifFile "01.scripts/pwsh" "generateInventoryFileFromInstallScript.ps1"
+    huntForWmuiFile "01.scripts/pwsh" "generateInventoryFileFromInstallScript.ps1"
 
     if [ ! -f "${WMUI_CACHE_HOME}/01.scripts/pwsh/generateInventoryFileFromInstallScript.ps1" ]; then
       logE "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/01.scripts/pwsh/generateInventoryFileFromInstallScript.ps1 not found, cannot continue"
       return 1
     fi
 
-    huntForSuifFile "02.templates/01.setup/${1}" "template.wmscript"
+    huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
       logE "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript not found, cannot continue"
@@ -650,7 +703,7 @@ generateFixesImageFromTemplate() {
   local crtDir
   crtDir=$(pwd)
 
-  cd "${lSumHome}/bin" || return 3
+  cd "${lUpdMgrHome}/bin" || return 3
   
   controlledExec "${lCmd}" "Create-fixes-image-for-template-$(strSubstPOSIX "$1" "/" "-")-tag-${lFixesTag}"
   local lResultFixCreation=$?
@@ -662,7 +715,7 @@ generateFixesImageFromTemplate() {
     tar czf "dump.tgz" ./* --remove-files
     mkdir -p "${lFixesDir}/$d"
     mv "dump.tgz" "${lFixesDir}/$d"/
-    cd "${lSumHome}" || return 1
+    cd "${lUpdMgrHome}" || return 1
     logD "[setupFunctions.sh:generateFixesImageFromTemplate()] - Listing all log files produced by Update Manager"
     find . -type f -name "*.log"
 
@@ -720,20 +773,26 @@ generateProductsImageFromTemplate() {
     local lSdcServerUrl
     case "${1}" in
     *"/1005/"*)
-      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM105.cgi"}
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1005:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM105.cgi"}
       ;;
     *"/1007/"*)
-      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM107.cgi"}
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1007:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM107.cgi"}
       ;;
     *"/1011/"*)
-      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi"}
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1011.cgi"}
+      ;;
+    *"/1015/"*)
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1015:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1015.cgi"}
+      ;;
+    *"/1101/"*)
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1101:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
       ;;
     *)
-      lSdcServerUrl=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi"}
+      lSdcServerUrl=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
       ;;
     esac
 
-    huntForSuifFile "02.templates/01.setup/${1}" "template.wmscript"
+    huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
       logE "[setupFunctions.sh:generateProductsImageFromTemplate()] - Template script ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript cannot be recovered, cannot continue"
@@ -765,7 +824,7 @@ generateProductsImageFromTemplate() {
   logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Volatile script created."
 
   ## TODO: check if error management enforcement is needed: what if the grep produced nothing?
-  ## TODO: dela with \ escaping in the password. For now avoid using '\' - backslash in the password string
+  ## TODO: deal with \ escaping in the password. For now avoid using '\' - backslash in the password string
 
   ## TODO: not space safe, but it shouldn't matter for now
   local lCmd="${lInstallerBin} -readScript ${lVolatileScriptFile}"
@@ -773,7 +832,7 @@ generateProductsImageFromTemplate() {
     lCmd="${lCmd} -debugFile '${lDebugLogFile}' -debugLvl verbose"
   fi
   lCmd="${lCmd} -writeImage ${lProductsImageFile}"
-  # explictly tell installer we are running unattended
+  # explicitly tell installer we are running unattended
   lCmd="${lCmd} -scriptErrorInteract no"
 
   # avoid downloading what we already have
@@ -831,28 +890,27 @@ checkSetupTemplateBasicPrerequisites() {
     fi
   fi
 
-
   logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN}"
   logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE}"
   logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_AVAILABLE=${WMUI_PATCH_AVAILABLE}"
 
   if [ "${WMUI_PATCH_AVAILABLE}" -ne 0 ]; then
     # check WMUI_INSTALL_IMAGE_FILE
-    if [ -z "${WMUI_PATCH_SUM_BOOTSTRAP_BIN+x}" ]; then
-      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_SUM_BOOTSTRAP_BIN was not set!"
+    if [ -z "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN+x}" ]; then
+      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN was not set!"
       errCount=$((errCount+1))
     else
-      if [ ! -f "${WMUI_PATCH_SUM_BOOTSTRAP_BIN}" ]; then
-        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_SUM_BOOTSTRAP_BIN=${WMUI_PATCH_SUM_BOOTSTRAP_BIN} file does not exist!"
+      if [ ! -f "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
+        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} file does not exist!"
         errCount=$((errCount+1))
       else
-        logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_SUM_BOOTSTRAP_BIN=${WMUI_PATCH_SUM_BOOTSTRAP_BIN}"
-        if [ ! -x "${WMUI_PATCH_SUM_BOOTSTRAP_BIN}" ]; then
-          logW "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_SUM_BOOTSTRAP_BIN=${WMUI_PATCH_SUM_BOOTSTRAP_BIN} file exists, but is not executable. Attempting to chmod now..."
-          chmod u+x "${WMUI_PATCH_SUM_BOOTSTRAP_BIN}"
+        logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
+        if [ ! -x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
+          logW "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} file exists, but is not executable. Attempting to chmod now..."
+          chmod u+x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
           local RESULT_chmod=$?
-          if [ ! -x "${WMUI_PATCH_SUM_BOOTSTRAP_BIN}" ]; then
-            logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_PATCH_SUM_BOOTSTRAP_BIN} Failed! The command exit code was ${RESULT_chmod}."
+          if [ ! -x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
+            logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} Failed! The command exit code was ${RESULT_chmod}."
             errCount=$((errCount+1))
           fi
         fi
@@ -875,7 +933,7 @@ checkSetupTemplateBasicPrerequisites() {
 
   if [ $errCount -ne 0 ]; then
     logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - $errCount errors found! Cannot continue!"
-    return 11
+    return 100
   fi
 }
 
