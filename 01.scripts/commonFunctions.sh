@@ -19,16 +19,6 @@ export WMUI_CURRENT_SHELL
 # Variables defaults are specified in the init function
 # client projects should source their variables with en .env file
 
-# deprecated
-newAuditSession() {
-  export WMUI_AUDIT_BASE_DIR="${WMUI_AUDIT_BASE_DIR:-'/tmp'}"
-  WMUI_SESSION_TIMESTAMP="$(date +%y-%m-%dT%H.%M.%S_%3N)"
-  export WMUI_SESSION_TIMESTAMP
-  export WMUI_AUDIT_SESSION_DIR="${WMUI_AUDIT_BASE_DIR}/${WMUI_SESSION_TIMESTAMP}"
-  mkdir -p "${WMUI_AUDIT_SESSION_DIR}"
-  return $?
-}
-
 initAuditSession() {
   export WMUI_AUDIT_BASE_DIR="${WMUI_AUDIT_BASE_DIR:-/tmp}"
   WMUI_SESSION_TIMESTAMP="${WMUI_SESSION_TIMESTAMP:-$(date +%Y-%m-%dT%H.%M.%S_%3N)}"
@@ -39,7 +29,6 @@ initAuditSession() {
 }
 
 init() {
-  #newAuditSession || return $?
   initAuditSession || return $?
 
   # For internal dependency checks,
@@ -47,6 +36,8 @@ init() {
   export WMUI_LOG_TOKEN="${WMUI_LOG_TOKEN:-WMUI}"
   # by default, we assume we are working connected to internet, put this on 0 for offline installations
   export WMUI_ONLINE_MODE="${WMUI_ONLINE_MODE:-1}"
+  # enable colorized output on stdout, 0=no colors, 1=colors enabled
+  export WMUI_COLORIZED_OUTPUT="${WMUI_COLORIZED_OUTPUT:-0}"
 
   if [ "${WMUI_ONLINE_MODE}" -eq 0 ]; then
     # in offline mode the caller MUST provide the home folder for WMUI in the env var WMUI_HOME
@@ -65,32 +56,53 @@ init() {
   # SUPPRESS_STDOUT means we will not produce STD OUT LINES
   # Normally we want the see the output when we prepare scripts, and suppress it when we finished
   export WMUI_SUPPRESS_STDOUT="${WMUI_SUPPRESS_STDOUT:-0}"
+
+  # Color constants for output (ANSI escape codes)
+  if [ "${WMUI_COLORIZED_OUTPUT}" -ne 0 ]; then
+    export WMUI_COLOR_RESET='\033[0m'
+    export WMUI_COLOR_INFO='\033[0;36m'     # Cyan for INFO
+    export WMUI_COLOR_WARN='\033[0;33m'     # Yellow for WARN
+    export WMUI_COLOR_ERROR='\033[0;31m'    # Red for ERROR
+    export WMUI_COLOR_DEBUG='\033[0;35m'    # Magenta for DEBUG
+  else
+    export WMUI_COLOR_RESET=''
+    export WMUI_COLOR_INFO=''
+    export WMUI_COLOR_WARN=''
+    export WMUI_COLOR_ERROR=''
+    export WMUI_COLOR_DEBUG=''
+  fi
 }
 
-init || exit $?
-
-# all log functions recieve 1 parameter
+# all log functions receive 1 parameter
 # $1 - Message to log
 
 logI() {
-  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -INFO - ${1}"; fi
-  echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -INFO - ${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
+  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then 
+    printf "%b%s%b\n" "${WMUI_COLOR_INFO}" "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|I|${1}" "${WMUI_COLOR_RESET}"
+  fi
+  echo "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|I|${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
 }
 
 logW() {
-  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -WARN - ${1}"; fi
-  echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -WARN - ${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
+  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then 
+    printf "%b%s%b\n" "${WMUI_COLOR_WARN}" "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|W|${1}" "${WMUI_COLOR_RESET}"
+  fi
+  echo "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|W|${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
 }
 
 logE() {
-  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -ERROR- ${1}"; fi
-  echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -ERROR- ${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
+  if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then 
+    printf "%b%s%b\n" "${WMUI_COLOR_ERROR}" "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|E|${1}" "${WMUI_COLOR_RESET}"
+  fi
+  echo "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|E|${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
 }
 
 logD() {
   if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
-    if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -DEBUG- ${1}"; fi
-    echo "$(date +%y-%m-%dT%H.%M.%S_%3N) ${WMUI_LOG_TOKEN} -DEBUG- ${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
+    if [ "${WMUI_SUPPRESS_STDOUT}" -eq 0 ]; then 
+      printf "%b%s%b\n" "${WMUI_COLOR_DEBUG}" "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|D|${1}" "${WMUI_COLOR_RESET}"
+    fi
+    echo "$(date +%H%M%S)|${WMUI_LOG_TOKEN}|D|${1}" >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
   fi
 }
 
@@ -107,6 +119,10 @@ logFullEnv() {
     env | grep WMUI | sort >>"${WMUI_AUDIT_SESSION_DIR}/session.log"
   fi
 }
+
+init || exit $?
+
+logI "New Session initialized WMUI_AUDIT_SESSION_DIR=${WMUI_AUDIT_SESSION_DIR}"
 
 # Convention:
 # f() function creates a RESULT_f variable for the outcome
@@ -200,25 +216,25 @@ urldecode() {
   printf '%b' "${url_encoded//%/\\x}"
 }
 
-# Parameters - huntForSuifFile
+# Parameters - huntForWmuiFile
 # $1 - relative Path to WMUI_CACHE_HOME
 # $2 - filename
-huntForSuifFile() {
+huntForWmuiFile() {
   if [ ! -f "${WMUI_CACHE_HOME}/${1}/${2}" ]; then
     if [ "${WMUI_ONLINE_MODE}" -eq 0 ]; then
-      logE "[commonFunctions.sh:huntForSuifFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} not found! Will not attempt download, as we are working offline!"
+      logE "[commonFunctions.sh:huntForWmuiFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} not found! Will not attempt download, as we are working offline!"
       return 1 # File should exist, but it does not
     fi
-    logI "[commonFunctions.sh:huntForSuifFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} not found in local cache, attempting download"
+    logI "[commonFunctions.sh:huntForWmuiFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} not found in local cache, attempting download"
     mkdir -p "${WMUI_CACHE_HOME}/${1}"
-    logI "[commonFunctions.sh:huntForSuifFile()] - Downloading from ${WMUI_HOME_URL}/${1}/${2} ..."
+    logI "[commonFunctions.sh:huntForWmuiFile()] - Downloading from ${WMUI_HOME_URL}/${1}/${2} ..."
     curl "${WMUI_HOME_URL}/${1}/${2}" --silent -o "${WMUI_CACHE_HOME}/${1}/${2}"
     local RESULT_curl=$?
     if [ ${RESULT_curl} -ne 0 ]; then
-      logE "[commonFunctions.sh:huntForSuifFile()] - curl failed, code ${RESULT_curl}"
+      logE "[commonFunctions.sh:huntForWmuiFile()] - curl failed, code ${RESULT_curl}"
       return 2
     fi
-    logI "[commonFunctions.sh:huntForSuifFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} downloaded successfully"
+    logI "[commonFunctions.sh:huntForWmuiFile()] - File ${WMUI_CACHE_HOME}/${1}/${2} downloaded successfully"
   fi
 }
 
@@ -226,9 +242,9 @@ huntForSuifFile() {
 # $1 - Setup template directory, relative to <repo_home>/02.templates/02.post-setup
 applyPostSetupTemplate() {
   logI "[commonFunctions.sh:applyPostSetupTemplate()] - Applying post-setup template ${1}"
-  huntForSuifFile "02.templates/02.post-setup/${1}" "apply.sh"
-  local RESULT_huntForSuifFile=$?
-  if [ ${RESULT_huntForSuifFile} -ne 0 ]; then
+  huntForWmuiFile "02.templates/02.post-setup/${1}" "apply.sh"
+  local RESULT_huntForWmuiFile=$?
+  if [ ${RESULT_huntForWmuiFile} -ne 0 ]; then
     logE "[commonFunctions.sh:applyPostSetupTemplate()] - File ${WMUI_CACHE_HOME}/02.templates/02.post-setup/${1}/apply.sh not found!"
     return 1
   fi

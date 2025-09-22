@@ -26,8 +26,8 @@ ls /mnt/sag-licenses/Integration_Server.xml
 - Launch the installer and pick your desired configuration
 
 ```sh
-${SUIF_INSTALL_INSTALLER_BIN} \
--installDir ${SUIF_INSTALL_InstallDir} \
+${WMUI_INSTALL_INSTALLER_BIN} \
+-installDir ${WMUI_INSTALL_InstallDir} \
 -writeScript /mnt/output/yourTemplateNameHere.wmscript
 ```
 
@@ -41,15 +41,15 @@ The products listed below are ready to be saved to script /mnt/output/yourTempla
 
 ```sh
 #Template variables
-imageFile=${SUIF_INSTALL_IMAGE_FILE}
+imageFile=${WMUI_INSTALL_IMAGE_FILE}
 ```
 
 - Continue with the authoring of the output file by moving the lines containing variables from their original position to the bottom of the file and substituting the actual values with variable names. Example
 
 ```sh
 #Template variables
-imageFile=${SUIF_INSTALL_IMAGE_FILE}
-InstallDir=${SUIF_INSTALL_INSTALL_DIR}
+imageFile=${WMUI_INSTALL_IMAGE_FILE}
+InstallDir=${WMUI_INSTALL_INSTALL_DIR}
 ```
 
 Installer also accepts a "LATEST" version of the components. To achieve this, run:
