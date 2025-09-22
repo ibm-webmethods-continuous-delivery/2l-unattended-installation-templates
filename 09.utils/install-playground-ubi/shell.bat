@@ -1,0 +1,1 @@
+docker exec -ti install-playground-ubi-1-1 bash

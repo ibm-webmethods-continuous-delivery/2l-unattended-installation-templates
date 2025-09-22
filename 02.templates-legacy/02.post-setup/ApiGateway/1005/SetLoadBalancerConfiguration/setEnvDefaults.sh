@@ -1,0 +1,14 @@
+#!/bin/sh
+
+#caller MUST provide
+
+export WMUI_APIGW_LB_JSON_FILE=${WMUI_APIGW_LB_JSON_FILE:-"/tmp/must_give_an_lb_json_file"}
+
+# caller SHOULD provide
+
+export WMUI_APIGW_ADMINISTRATOR_PASSWORD=${WMUI_APIGW_ADMINISTRATOR_PASSWORD:-"manage"}
+
+export WMUI_APIGW_URL_PROTOCOL=${WMUI_APIGW_URL_PROTOCOL:-"http"}
+export WMUI_APIGW_DOMAINNAME=${WMUI_APIGW_DOMAINNAME:-"localhost"}
+export WMUI_APIGW_SERVICE_PORT=${WMUI_APIGW_SERVICE_PORT:-"5555"}
+
