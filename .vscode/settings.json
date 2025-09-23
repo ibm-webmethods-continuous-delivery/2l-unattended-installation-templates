@@ -1,16 +1,28 @@
 {
   "workbench.colorTheme": "Tomorrow Night Blue",
   "cSpell.words": [
+    "apigatewayui",
     "buildx",
+    "Configurator",
+    "cpus",
+    "dashboardproxy",
     "dataserveweb",
     "dbpass",
     "diagnoser",
     "diagnosers",
+    "elasticvue",
     "envsubst",
+    "esdata",
+    "Glassfish",
+    "healthcheck",
+    "JAXB",
     "LNXAMD",
     "microdnf",
+    "microgateway",
     "nofile",
+    "procps",
     "pwsh",
+    "RDBMS",
     "Serverdiagnostic",
     "Serversecure",
     "shunit",
@@ -23,6 +35,7 @@
     "webmethods",
     "WMSCRIPT",
     "WMUI",
-    "WPID"
+    "WPID",
+    "xpack"
   ]
 }

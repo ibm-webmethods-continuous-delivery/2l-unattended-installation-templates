@@ -14,7 +14,7 @@ docker-compose up
 - Start a separate shell in the container:
 
 ```sh
-docker exec -ti install-playground-1-1 bash
+docker exec -ti install-playground-ubi-1-1 bash
 ```
 
 - Look for the required licenses files or other prerequisites now or if you prefer in a separate shell
@@ -27,7 +27,7 @@ ls /mnt/sag-licenses/Integration_Server.xml
 
 ```sh
 ${WMUI_INSTALL_INSTALLER_BIN} \
--installDir ${WMUI_INSTALL_InstallDir} \
+-installDir ${WMUI_INSTALL_INSTALL_DIR} \
 -writeScript /mnt/output/yourTemplateNameHere.wmscript
 ```
 

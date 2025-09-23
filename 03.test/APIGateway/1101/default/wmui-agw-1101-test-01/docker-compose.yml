@@ -3,12 +3,13 @@ volumes:
   install-home: {}
   sum-home: {}
   audit: {}
+  esdata: {}
 
 networks:
     n1:
       external: false
 services:
-  apigw1:
+  apigateway:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
@@ -23,7 +24,7 @@ services:
       nproc: 4096
       nofile: 65536
     volumes:
-      # the following must match the Dokerfile folders, otherwise permissions on FS will not work
+      # the following must match the Dockerfile folders, otherwise permissions on FS will not work
       - install-home:${WMUI_INSTALL_INSTALL_DIR}
       - sum-home:${WMUI_UPD_MGR_HOME}
       - audit:${WMUI_AUDIT_BASE_DIR}
@@ -54,8 +55,17 @@ services:
       - WMUI_WORK_DIR
       # host related, but still needed
       - H_WMUI_PORT_PREFIX
+      # Name and port of the REST interface of the Elasticsearch container.
+      - apigw_elasticsearch_hosts=core-elasticsearch:9200
+      # HTTPS enablement.
+      - apigw_elasticsearch_https_enabled=false
+      # Username and password for Elasticsearch. As standard leave it blank.
+      - apigw_elasticsearch_http_username=${PROVIDED_ELASTIC_USERNAME}
+      - apigw_elasticsearch_http_password=${PROVIDED_ELASTIC_PASSWORD}
+      # external kibana
+      - apigw_kibana_dashboardInstance=http://host.docker.internal:${H_WMUI_PORT_PREFIX}56
+      # - apigw_kibana_autostart=false
     ports:
-      - "${H_WMUI_PORT_PREFIX}20:9240"
       - "${H_WMUI_PORT_PREFIX}73:9073"
       - "${H_WMUI_PORT_PREFIX}72:9072"
       - "${H_WMUI_PORT_PREFIX}55:5555"
@@ -64,11 +74,86 @@ services:
         aliases:
           - apigw-server
     entrypoint: ${WMUI_TEST_LOCAL_SCRIPTS_DIR}/containerEntrypoint.sh
+    healthcheck:
+      interval: 10s
+      retries: 200
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
+
+  
+  core-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${CORE_ELK_VERSION}
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      # Used for cluster bootstrapping. The mentioned nodes are potential master nodes.
+      # - cluster.initial_master_nodes=core-elasticsearch
+      # got this from the elasticvue hints
+      - http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
+      - http.cors.enabled=true
+      - http.cors.allow-origin=/.*/ # This is as large as possible, the lab is supposed to work locally only. Eventually enforce as needed
+      - ELASTIC_USERNAME=${PROVIDED_ELASTIC_USERNAME}
+      - ELASTIC_PASSWORD=${PROVIDED_ELASTIC_PASSWORD}
+    ports:
+      # REST interface
+      - ${H_WMUI_PORT_PREFIX}20:9200
+    networks:
+      - n1
+    # Compute resources
+    mem_reservation: 1g 
+    mem_limit: 1g # seems 1g is sufficient to start a small one, see: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
+    cpus: 1
+    # kernel / namespace limits
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      interval: 20s
+      retries: 10
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+  
+  # Elasticvue content explorer for elasticsearch, use for observability reasons
   elasticvue:
     image: cars10/elasticvue
     ports:
       - "${H_WMUI_PORT_PREFIX}80:8080"
     networks:
-      n1:
-        aliases:
-          - elasticvue
+      - n1
+    depends_on:
+      core-elasticsearch:
+        condition: service_healthy
+    mem_reservation: 100m
+    mem_limit: 500m
+    cpus: 1
+  
+  core-kibana:
+    image: docker.elastic.co/kibana/kibana:${CORE_ELK_VERSION}
+    depends_on:
+      #core-elasticsearch:
+      #  condition: service_healthy
+      apigateway:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_URL=http://core-elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=http://core-elasticsearch:9200
+      - KIBANA_EXTERNAL_HOSTNAME=http://host.docker.internal:${H_WMUI_PORT_PREFIX}56
+      - ELASTICSEARCH_USERNAME=${PROVIDED_ELASTIC_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${PROVIDED_ELASTIC_PASSWORD}
+      - SERVER_BASEPATH=/apigatewayui/dashboardproxy
+      - CONSOLE_ENABLED=false
+      #- KIBANA_INDEX=gateway_default_dashboard
+    ports:
+    - ${H_WMUI_PORT_PREFIX}56:5601
+    networks:
+    - n1
+    healthcheck:
+      interval: 10s
+      retries: 400
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+    # Compute resource limits
+    mem_reservation: 200m
+    mem_limit: 1g # seems 1g is sufficient to start a small one, see: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
+    cpus: 1
+  
