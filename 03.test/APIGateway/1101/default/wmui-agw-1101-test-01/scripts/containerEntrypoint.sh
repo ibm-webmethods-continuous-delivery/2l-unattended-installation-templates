@@ -65,33 +65,13 @@ if [ ! -d "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer" ]; then
   # Parameters - applySetupTemplate
   # $1 - Setup template directory, relative to <repo_home>/02.templates/01.setup
   applySetupTemplate "APIGateway/1101/default" || exit 6
-
-  ## Extra step: tell Elasticsearch to accept CORS from elasticvue
-  logI "[$lLOG_PREFIX] - Telling Elasticsearch to accept CORS from elasticvue"
-  
-  echo \
-    'http.cors.enabled: true' \
-    >> "$WMUI_INSTALL_INSTALL_DIR/InternalDataStore/config/elasticsearch.yml"
-
-  echo \
-    'http.cors.allow-origin: "'"http://host.docker.internal:${H_WMUI_PORT_PREFIX}80"'"' \
-    >> "$WMUI_INSTALL_INSTALL_DIR/InternalDataStore/config/elasticsearch.yml"
-
-  logI "[$lLOG_PREFIX] - printing Elasticsearch configuration for debug ..."
-  cat "$WMUI_INSTALL_INSTALL_DIR/InternalDataStore/config/elasticsearch.yml"
 fi
 
 onInterrupt(){
 	logI "[$lLOG_PREFIX:onInterrupt()] - Interrupted! Shutting down API Gateway"
 
 	logI "[$lLOG_PREFIX:onInterrupt()] - Shutting down Integration server ..."
-    cd "${WMUI_INSTALL_INSTALL_DIR}/profiles/IS_default/bin" || exit 111
-    ./shutdown.sh
-	logI "[$lLOG_PREFIX:onInterrupt()] - Shutting down Platform manager ..."
-    cd "${WMUI_INSTALL_INSTALL_DIR}/profiles/SPM/bin" || exit 112
-    ./shutdown.sh
-	logI "[$lLOG_PREFIX:onInterrupt()] - Shutting down Elasticsearch ..."
-    cd "${WMUI_INSTALL_INSTALL_DIR}/InternalDataStore/bin" || exit 113
+    cd "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin" || exit 111
     ./shutdown.sh
 
 	exit 0 # managed expected exit
@@ -129,15 +109,11 @@ logI "[$lLOG_PREFIX] - Checking prerequisites ..."
 checkPrerequisites || exit 7
 crtPath=$(pwd)
 
-
 beforeStartConfig
 
-logI "[$lLOG_PREFIX] - Starting Elasticsearch ..."
-cd "${WMUI_INSTALL_INSTALL_DIR}/InternalDataStore/bin" || exit 104
-./startup.sh
 logI "[$lLOG_PREFIX] - Starting Integration Server"
-cd "${WMUI_INSTALL_INSTALL_DIR}/profiles/IS_default/bin" || exit 105
-./console.sh & 
+cd "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin" || exit 105
+./server.sh & 
 
 WPID=$!
 
@@ -146,8 +122,14 @@ while ! portIsReachable2 localhost 9072; do
   sleep 5
 done
 
+logI "Server Started"
+
 afterStartConfig
 
 wait ${WPID}
 
 cd "$crtPath" || exit 106
+
+logI "open shells and work"
+
+sleep infinity
