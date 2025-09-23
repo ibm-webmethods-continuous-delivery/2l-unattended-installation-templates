@@ -1,0 +1,95 @@
+volumes:
+  db-data: {}
+  audit: {}
+  sum-home: {}
+  wm-dbc-home: {}
+  user-home: {}
+networks:
+    n1:
+      external: false
+services:
+  db:
+    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_DBSERVER_PASSWORD}
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_DBSERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${WMUI_TEST_PORT_PREFIX}32:5432"
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+  adminer:
+    image: adminer
+    container_name: on-postgres1-adminer
+    hostname: adminer
+    networks:
+      - n1
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}80:8080"
+    depends_on:
+      - db
+  dbc:
+    build:
+      context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+      args:
+        - __audit_home_dir=${WMUI_AUDIT_BASE_DIR}
+        - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
+        - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
+        - __user_home=${WMUI_USER_HOME}
+    image: local/dbc-1101-full-test-1
+    container_name: dbc-1101-full-test-1
+    hostname: ${WMUI_INSTALL_DECLARED_HOSTNAME}
+    volumes:
+      - audit:${WMUI_AUDIT_BASE_DIR}/
+      - sum-home:${WMUI_UPD_MGR_HOME}/
+      - wm-dbc-home:${WMUI_INSTALL_INSTALL_DIR}/
+      - user-home:${WMUI_USER_HOME}/
+      - ./scripts/:${WMUI_LOCAL_SCRIPTS_HOME}
+      - ${H_WMUI_HOME}:${WMUI_HOME}
+      - ${H_WMUI_INSTALL_INSTALLER_BIN}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+      - ${H_WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+      - ${H_WMUI_INSTALL_IMAGE_FILE}:${WMUI_INSTALL_IMAGE_FILE}
+      - ${H_WMUI_PATCH_FIXES_IMAGE_FILE}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+    environment:
+      # build ARGS are already in the image by the means of the Dockerfile ENV command
+      # following variables are required by the templates AT/1011/DBC4AT and AT/1011/server/minimal-on-posgresql
+      # Common template application variables
+      - WMUI_INSTALL_INSTALLER_BIN
+      - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+      - WMUI_INSTALL_DECLARED_HOSTNAME
+      # DBC4AT files
+      - WMUI_INSTALL_IMAGE_FILE
+      - WMUI_PATCH_FIXES_IMAGE_FILE
+      # our test harness context
+      - WMUI_PATCH_AVAILABLE
+      - WMUI_ONLINE_MODE
+      - WMUI_SDC_ONLINE_MODE
+      - WMUI_DEBUG_ON
+      # for database configurator
+      - WMUI_DBSERVER_HOSTNAME
+      - WMUI_DBSERVER_DATABASE_NAME
+      - WMUI_DBSERVER_USER_NAME
+      - WMUI_DBSERVER_PASSWORD
+      - WMUI_DBSERVER_PORT
+      - WMUI_DBC_COMPONENT_NAME
+      - WMUI_DBC_COMPONENT_VERSION
+      - WMUI_TEST_PORT_PREFIX
+      # Latest additions
+      - WMUI_AUDIT_BASE_DIR
+      - WMUI_UPD_MGR_HOME
+      - WMUI_INSTALL_INSTALL_DIR
+      - WMUI_LOCAL_SCRIPTS_HOME
+      - WMUI_HOME
+      - WMUI_USER_HOME
+    networks:
+      - n1
+    depends_on:
+      - db
+    entrypoint: ${WMUI_LOCAL_SCRIPTS_HOME}/containerEntrypoint.sh
