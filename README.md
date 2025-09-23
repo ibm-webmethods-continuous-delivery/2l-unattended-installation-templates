@@ -30,11 +30,43 @@ Contains templates for installations which leverage the core functions in the sc
 
 #### 02.templates.01.setup
 
+Setup templates are organized in a hierarchical folder structure under [02.templates/01.setup](02.templates/01.setup). Each template is identified by its relative path from this base directory and must contain a [`template.wmscript`](02.templates/01.setup/APIGateway/1101/wpm-e2e-cu-postgres/template.wmscript) file.
+
+**Template Structure:**
+- **Template ID**: The relative path from `02.templates/01.setup/` to the folder containing `template.wmscript`
+- **Template Files**: Each template folder contains:
+  - `template.wmscript` - Core installation script (required)
+  - `ProductsLatestList.txt` or `ProductsVersionedList.txt` - Product lists (required)
+  - `setEnvDefaults.sh` - Default environment variables (optional)
+  - `checkPrerequisites.sh` - Prerequisites validation script (optional)
+  - Installer view files - Configuration for installer interface (optional)
+
+**Examples:**
+- Template ID: `APIGateway/1101/default` → Located at `02.templates/01.setup/APIGateway/1101/default/template.wmscript`
+- Template ID: `APIGateway/1101/wpm-e2e-cu-postgres` → Located at `02.templates/01.setup/APIGateway/1101/wpm-e2e-cu-postgres/template.wmscript`
+- Template ID: `DBC/1101/full` → Located at `02.templates/01.setup/DBC/1101/full/template.wmscript`
+
 #### 02.templates.02.post-setup
+
+Post-setup templates for additional configuration after initial installation.
 
 ### 03.test
 
-Contain test harnesses for the scripts and templates
+Contains test harnesses for validating scripts and templates. Test harnesses are organized to mirror the template structure.
+
+**Test Harness Naming Convention:**
+- Each template can have multiple test harnesses
+- Test harnesses are located under `03.test/<template-path>/`
+- Naming pattern: `wmui-<product>-<version>-test-<number>`
+
+**Examples:**
+- Template `APIGateway/1101/default` has test harness: `03.test/APIGateway/1101/default/wmui-agw-1101-test-01/`
+- Template `DBC/1101/full` has test harness: `03.test/DBC/wmui-dbc-1101-test-01/`
+
+Each test harness typically contains:
+- `docker-compose.yml` - Container orchestration for the test
+- `.env` - Environment variables for the test
+- `scripts/` - Test-specific scripts and entry points
 
 ### 09.utils
 
