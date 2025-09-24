@@ -137,17 +137,17 @@ controlledExec() {
   return $?
 }
 
-portIsReachable() {
-  # Params: $1 -> host $2 -> port
-  if [ -f /usr/bin/nc ]; then
-    nc -z "${1}" "${2}" # alpine image
-  else
-    # shellcheck disable=SC2006,SC2086,SC3025,SC2034
-    temp=$( (echo >/dev/tcp/${1}/${2}) >/dev/null 2>&1) # centos image
-  fi
-  # shellcheck disable=SC2181
-  if [ $? -eq 0 ]; then echo 1; else echo 0; fi
-}
+# portIsReachable() {
+#   # Params: $1 -> host $2 -> port
+#   if [ -f /usr/bin/nc ]; then
+#     nc -z "${1}" "${2}" # alpine image
+#   else
+#     # shellcheck disable=SC2006,SC2086,SC3025,SC2034
+#     temp=$( (echo >/dev/tcp/${1}/${2}) >/dev/null 2>&1) # centos image
+#   fi
+#   # shellcheck disable=SC2181
+#   if [ $? -eq 0 ]; then echo 1; else echo 0; fi
+# }
 
 portIsReachable2() {
   # Params: $1 -> host $2 -> port
