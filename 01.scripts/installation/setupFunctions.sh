@@ -676,7 +676,7 @@ generateFixesImageFromTemplate() {
     local lUseLatest="${7:-YES}"
     local lProductsListFile="ProductsLatestList.txt"
 
-    if [ "${lUseLatest}" == "NO" ]; then
+    if [ "${lUseLatest}" = "NO" ]; then
       lProductsListFile="ProductsVersionedList.txt"
     fi
     
@@ -948,7 +948,7 @@ checkSetupTemplateBasicPrerequisites() {
       errCount=$((errCount+1))
     else
       if [ ! -f "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
-        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} file does not exist!"
+        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - File declared in the variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} does not exist!"
         errCount=$((errCount+1))
       else
         logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"

@@ -98,7 +98,7 @@ startMSR() {
   local retries=0
   local max_retries=200
   while [ $retries -lt $max_retries ]; do
-    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/health 2>/dev/null; then
+    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/invoke/wm.server/ping 2>/dev/null; then
       logI "[$lLOG_PREFIX:startMSR()] - MSR is ready!"
       break
     fi
@@ -118,12 +118,7 @@ showAccessInfo() {
   logI "[$lLOG_PREFIX:showAccessInfo()] - MSR selection 20250924 Test Harness"
   logI "[$lLOG_PREFIX:showAccessInfo()] - ==================================================="
   logI "[$lLOG_PREFIX:showAccessInfo()] - MSR Admin UI: http://host.docker.internal:${H_WMUI_PORT_PREFIX}55"
-  logI "[$lLOG_PREFIX:showAccessInfo()] - MSR REST Port: http://host.docker.internal:${H_WMUI_PORT_PREFIX}72"
-  logI "[$lLOG_PREFIX:showAccessInfo()] - MSR HTTPS Port: https://host.docker.internal:${H_WMUI_PORT_PREFIX}73"
   logI "[$lLOG_PREFIX:showAccessInfo()] - Database Admin (Adminer): http://host.docker.internal:${H_WMUI_PORT_PREFIX}80"
-  logI "[$lLOG_PREFIX:showAccessInfo()] - Elasticsearch: http://host.docker.internal:${H_WMUI_PORT_PREFIX}20"
-  logI "[$lLOG_PREFIX:showAccessInfo()] - Elasticvue: http://host.docker.internal:${H_WMUI_PORT_PREFIX}81"
-  logI "[$lLOG_PREFIX:showAccessInfo()] - Kibana: http://host.docker.internal:${H_WMUI_PORT_PREFIX}56"
   logI "[$lLOG_PREFIX:showAccessInfo()] - ==================================================="
   logI "[$lLOG_PREFIX:showAccessInfo()] - Database connection details:"
   logI "[$lLOG_PREFIX:showAccessInfo()] - Host: ${WMUI_DBSERVER_HOSTNAME}"
@@ -131,7 +126,7 @@ showAccessInfo() {
   logI "[$lLOG_PREFIX:showAccessInfo()] - User: ${WMUI_DBSERVER_USER_NAME}"
   logI "[$lLOG_PREFIX:showAccessInfo()] - Password: ${WMUI_DBSERVER_PASSWORD}"
   logI "[$lLOG_PREFIX:showAccessInfo()] - ==================================================="
-  logI "[$lLOG_PREFIX:showAccessInfo()] - Issue 'docker-compose down -t 20' to close this project!"
+  logI "[$lLOG_PREFIX:showAccessInfo()] - Issue 'docker-compose down -t 80' to close this project!"
   logI "[$lLOG_PREFIX:showAccessInfo()] - ==================================================="
 }
 

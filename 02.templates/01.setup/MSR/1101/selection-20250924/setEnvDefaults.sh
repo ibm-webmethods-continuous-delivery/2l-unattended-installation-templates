@@ -37,7 +37,6 @@ if [ "${__err_count}" -ne 0 ]; then
   exit 1
 fi
 
-
 WMUI_WMSCRIPT_CDS_DB_CONN_STRING_URLENCODED=$(urlencode "${WMUI_WMSCRIPT_CDS_CONN_STRING}")
 export WMUI_WMSCRIPT_CDS_DB_CONN_STRING_URLENCODED
 

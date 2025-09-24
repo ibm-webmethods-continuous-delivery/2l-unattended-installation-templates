@@ -2,7 +2,6 @@ volumes:
   install-home: {}
   upd-mgr-home: {}
   audit: {}
-  esdata: {}
   db-data: {}
 
 networks:
@@ -114,4 +113,4 @@ services:
     healthcheck:
       interval: 10s
       retries: 200
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/invoke/wm.server/ping
