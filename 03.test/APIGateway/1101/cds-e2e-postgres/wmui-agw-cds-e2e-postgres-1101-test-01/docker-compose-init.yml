@@ -1,0 +1,104 @@
+volumes:
+  db-data: {}
+  dbc-tools: {}
+  dbc-audit: {}
+  dbc-user-home: {}
+
+networks:
+    n2:
+      external: false
+
+services:
+  db:
+    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_DBSERVER_PASSWORD}
+    networks:
+      n2:
+        aliases:
+          - ${WMUI_DBSERVER_HOSTNAME}
+    ports:
+      - "${H_WMUI_PORT_PREFIX}32:5432"
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WMUI_DBSERVER_USER_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    container_name: agw-wpm-e2e-cu-postgres-init-adminer
+    hostname: adminer
+    networks:
+      - n2
+    ports:
+      - "${H_WMUI_PORT_PREFIX}80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db-init:
+    build:
+      context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+      args:
+        - __audit_home_dir=${WMUI_AUDIT_BASE_DIR}
+        - __install_dir=/opt/webmethods/dbc
+        - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
+        - __user_home=${WMUI_USER_HOME}
+    image: local/dbc-init-1101-test
+    container_name: dbc-init-1101-test
+    hostname: dbc-init-node
+    volumes:
+      - dbc-audit:${WMUI_AUDIT_BASE_DIR}/
+      - dbc-tools:/opt/webmethods/dbc/
+      - dbc-user-home:${WMUI_USER_HOME}/
+      - ./scripts-init/:${WMUI_TEST_LOCAL_SCRIPTS_DIR}
+      - ${H_WMUI_HOME}:${WMUI_HOME}
+      - ${H_WMUI_INSTALLER_BIN}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+      - ${H_WMUI_UPD_MGR_BOOTSTRAP_BIN}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+      - ${H_WMUI_DBC_PRODUCTS_IMAGE_FILE}:${WMUI_INSTALL_IMAGE_FILE}
+      - ${H_WMUI_DBC_FIXES_IMAGE_FILE}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+    environment:
+      # build ARGS are already in the image by the means of the Dockerfile ENV command
+      # Common template application variables
+      - WMUI_INSTALL_INSTALLER_BIN
+      - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+      - WMUI_INSTALL_DECLARED_HOSTNAME=dbc-init-node
+      # DBC files
+      - WMUI_INSTALL_IMAGE_FILE
+      - WMUI_PATCH_FIXES_IMAGE_FILE
+      # DBC installation directory (different from main API Gateway)
+      - WMUI_INSTALL_INSTALL_DIR=/opt/webmethods/dbc
+      # Test harness context
+      - WMUI_PATCH_AVAILABLE
+      - WMUI_ONLINE_MODE
+      - WMUI_SDC_ONLINE_MODE
+      - WMUI_DEBUG_ON=0
+      # For database configurator
+      - WMUI_DBSERVER_HOSTNAME
+      - WMUI_DBSERVER_DATABASE_NAME
+      - WMUI_DBSERVER_USER_NAME
+      - WMUI_DBSERVER_PASSWORD
+      - WMUI_DBSERVER_PORT
+      - WMUI_DBC_COMPONENT_NAME=All
+      - WMUI_DBC_COMPONENT_VERSION=latest
+      - H_WMUI_PORT_PREFIX
+      # Framework variables
+      - WMUI_AUDIT_BASE_DIR
+      - WMUI_UPD_MGR_HOME
+      - WMUI_TEST_LOCAL_SCRIPTS_DIR
+      - WMUI_HOME
+      - WMUI_USER_HOME
+      - WMUI_WORK_DIR
+    networks:
+      - n2
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ${WMUI_TEST_LOCAL_SCRIPTS_DIR}/dbInitEntrypoint.sh

@@ -80,6 +80,12 @@ installProducts() {
   # apply environment substitutions
   envsubst <"${2}" >"${tempInstallScript}" || return 5
 
+  # if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
+  #   # preserve in the audit what we are using for installation
+  #   # this may contain other passwords, thus do not do this in production
+  #   cp "${tempInstallScript}" "${WMUI_AUDIT_SESSION_DIR}/install_$(date +%s).wmscript"
+  # fi
+
   local installCmd="${1} -readScript \"${tempInstallScript}\" -console"
   local installCmd="${installCmd} -debugLvl ${debugLevel}"
   if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
@@ -88,7 +94,7 @@ installProducts() {
     local installCmd="${installCmd} -scriptErrorInteract no"
   fi
   local installCmd="${installCmd} -debugFile "'"'"${WMUI_AUDIT_SESSION_DIR}/debugInstall.log"'"'
-  controlledExec "${installCmd}" "${d}.product-install"
+  controlledExec "${installCmd}" "product-install"
 
   RESULT_installProducts=$?
   if [ ${RESULT_installProducts} -eq 0 ]; then
@@ -143,7 +149,7 @@ bootstrapUpdMgr() {
   else
     logI "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} into ${UPD_MGR_HOME} using ONLINE mode"
   fi
-  controlledExec "${bootstrapCmd}" "${d}.upd-mgr-bootstrap"
+  controlledExec "${bootstrapCmd}" "upd-mgr-bootstrap"
   RESULT_controlledExec=$?
 
   if [ ${RESULT_controlledExec} -eq 0 ]; then
@@ -179,7 +185,7 @@ patchUpdMgr() {
   local crtDir
   crtDir=$(pwd)
   cd "${UPD_MGR_HOME}/bin" || return 2
-  controlledExec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "${d}.patchUpdMgr"
+  controlledExec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "patchUpdMgr"
   RESULT_controlledExec=$?
   if [ "${RESULT_controlledExec}" -ne 0 ]; then
     logE "[setupFunctions.sh:patchUpdMgr()] - Update Manager Self Update failed with code ${RESULT_controlledExec}"
@@ -222,14 +228,14 @@ removeDiagnoserPatch() {
   cd "${UPD_MGR_HOME}/bin" || return 4
 
   logI "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of existing fixes..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesBeforeSPRemoval"
+  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforeSPRemoval"
 
   logI "[setupFunctions.sh:removeDiagnoserPatch()] - Removing support patch ${1} from installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
-  controlledExec "./UpdateManagerCMD.sh -readScript \"${tmpScriptFile}\"" "${d}.SPFixRemoval"
+  controlledExec "./UpdateManagerCMD.sh -readScript \"${tmpScriptFile}\"" "SPFixRemoval"
   RESULT_controlledExec=$?
 
   logI "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of fixes after the execution of SP removal..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesAfterSPRemoval"
+  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterSPRemoval"
 
   cd "${crtDir}" || return 5
 
@@ -291,18 +297,18 @@ patchInstallation() {
   cd "${UPD_MGR_HOME}/bin" || return 3
 
   logI "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of existing fixes..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesBeforePatching"
+  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforePatching"
 
   logI "[setupFunctions.sh:patchInstallation()] - Explicitly patch UPD_MGR itself, if required..."
   patchUpdMgr "${1}" "${UPD_MGR_HOME}"
 
   logI "[setupFunctions.sh:patchInstallation()] - Applying fixes from image ${1} to installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
 
-  controlledExec "./UpdateManagerCMD.sh -readScript \"${fixesScriptFile}\"" "${d}.PatchInstallation"
+  controlledExec "./UpdateManagerCMD.sh -readScript \"${fixesScriptFile}\"" "PatchInstallation"
   RESULT_controlledExec=$?
 
   logI "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of fixes after the patching..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "${d}.FixesAfterPatching"
+  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterPatching"
 
   cd "${crtDir}" || return 4
 

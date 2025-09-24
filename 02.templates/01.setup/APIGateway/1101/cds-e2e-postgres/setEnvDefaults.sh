@@ -50,7 +50,7 @@ export WMUI_WMSCRIPT_YAIHttpsPort="${WMUI_WMSCRIPT_YAIHttpsPort:-9073}"
 
 # ------------------------------ Section 6 - Constants
 
-export WMUI_CURRENT_SETUP_TEMPLATE_PATH="APIGateway/1101/wpm-e2e-cu-postgres"
+export WMUI_CURRENT_SETUP_TEMPLATE_PATH="APIGateway/1101/cds-e2e-postgres"
 
 WMUI_WMSCRIPT_CDS_DB_CONN_STRING_URLENCODED=$(urlencode "${WMUI_WMSCRIPT_CDS_CONN_STRING}")
 export WMUI_WMSCRIPT_CDS_DB_CONN_STRING_URLENCODED
