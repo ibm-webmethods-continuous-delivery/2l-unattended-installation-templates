@@ -1,0 +1,49 @@
+volumes:
+  db-data: {}
+  um-data: {}
+  um-logs: {}
+networks:
+    n1:
+      external: false
+services:
+  db:
+    image: ${WMUI_LAB10_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_LAB10_DBSERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${WMUI_LAB10_PORT_PREFIX}32:5432"
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+    command: -p ${WMUI_LAB10_DBSERVER_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s 
+  adminer:
+    image: adminer
+    networks:
+      - n1
+    ports:
+      - ${WMUI_LAB10_PORT_PREFIX}80:8080
+    depends_on:
+      db:
+        condition: service_healthy
+  um:
+    image: ${WMUI_LAB10_UM_IMAGE}
+    environment:
+      - REALM_NAME=${WMUI_LAB10_UM_REALM_NAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${WMUI_LAB10_PORT_PREFIX}99:9000"
+    volumes:
+      - um-data:/opt/softwareag/UniversalMessaging/server/umserver/data
+      - um-logs:/opt/softwareag/UniversalMessaging/server/umserver/logs
