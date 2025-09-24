@@ -1,0 +1,117 @@
+volumes:
+  install-home: {}
+  upd-mgr-home: {}
+  audit: {}
+  esdata: {}
+  db-data: {}
+
+networks:
+    n1:
+      external: false
+services:
+  db:
+    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_DBSERVER_PASSWORD}
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_DBSERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${H_WMUI_PORT_PREFIX}32:5432"
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WMUI_DBSERVER_USER_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  adminer:
+    image: adminer
+    container_name: msr-1101-selection-20250924-adminer
+    hostname: adminer
+    networks:
+      - n1
+    ports:
+      - "${H_WMUI_PORT_PREFIX}80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  msr:
+    build:
+      context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+      args:
+        - __audit_home_dir=${WMUI_AUDIT_BASE_DIR}
+        - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
+        - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
+        - __user_home=${WMUI_USER_HOME}
+    image: local/msr-selection-20250924-1101-test-1
+    container_name: msr-selection-20250924-1101-test-1
+    hostname: msr-selection-20250924-1101-test-1
+    ulimits:
+      nproc: 4096
+      nofile: 65536
+    volumes:
+      # the following must match the Dockerfile folders, otherwise permissions on FS will not work
+      - install-home:${WMUI_INSTALL_INSTALL_DIR}
+      - upd-mgr-home:${WMUI_UPD_MGR_HOME}
+      - audit:${WMUI_AUDIT_BASE_DIR}
+      - ./scripts:${WMUI_TEST_LOCAL_SCRIPTS_DIR}
+      # These must be provided, they are prerequisites
+      - ${H_WMUI_FIXES_IMAGE_FILE}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+      - ${H_WMUI_PRODUCTS_IMAGE_FILE}:${WMUI_INSTALL_IMAGE_FILE}
+      - ${H_WMUI_UPD_MGR_BOOTSTRAP_BIN}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+      - ${H_WMUI_INSTALLER_BIN}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+      - ../../../../../:${WMUI_HOME}
+    environment:
+      # we declare WMUI_HOME because we mount it here
+      - WMUI_HOME
+      - WMUI_AUDIT_BASE_DIR
+      - WMUI_UPD_MGR_HOME
+      # setupFunctions prerequisites map, declared here because provided by host
+      - WMUI_INSTALL_INSTALLER_BIN
+      - WMUI_INSTALL_IMAGE_FILE
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+      - WMUI_PATCH_FIXES_IMAGE_FILE
+      - WMUI_INSTALL_INSTALL_DIR
+      # declare install dir and SUM dir because they are mounted here
+      # setup template specifics - license provided by host
+      - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+      - WMUI_PATCH_AVAILABLE
+      - WMUI_ONLINE_MODE
+      - WMUI_SDC_ONLINE_MODE
+      - WMUI_DEBUG_ON
+      - WMUI_WORK_DIR
+      # host related, but still needed
+      - H_WMUI_PORT_PREFIX
+      # Database configuration for CDS
+      - WMUI_DBSERVER_HOSTNAME
+      - WMUI_DBSERVER_DATABASE_NAME
+      - WMUI_DBSERVER_USER_NAME
+      - WMUI_DBSERVER_PASSWORD
+      - WMUI_DBSERVER_PORT
+      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_DBSERVER_USER_NAME}
+      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_DBSERVER_PASSWORD}
+      - WMUI_WMSCRIPT_CDS_CONN_STRING
+      - WMUI_TEST_LOCAL_SCRIPTS_DIR
+    ports:
+      - "${H_WMUI_PORT_PREFIX}53:5543"
+      - "${H_WMUI_PORT_PREFIX}55:5555"
+    networks:
+      n1:
+        aliases:
+          - msr-server
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ${WMUI_TEST_LOCAL_SCRIPTS_DIR}/containerEntrypoint.sh
+    healthcheck:
+      interval: 10s
+      retries: 200
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
