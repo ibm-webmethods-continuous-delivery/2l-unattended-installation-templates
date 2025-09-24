@@ -2,6 +2,10 @@ volumes:
   db-data: {}
   um-data: {}
   um-logs: {}
+  esb-vm1-audit: {}
+  esb-vm1-user-home: {}
+  esb-vm1-wm-home: {}
+  esb-vm1-upd-mgr-home: {}
 networks:
     n1:
       external: false
@@ -27,7 +31,8 @@ services:
       interval: 30s
       timeout: 60s
       retries: 5
-      start_period: 80s 
+      start_period: 80s
+
   adminer:
     image: adminer
     networks:
@@ -45,5 +50,73 @@ services:
     #ports:
     #  - "${WMUI_LAB10_PORT_PREFIX}99:9000"
     volumes:
-      - um-data:/opt/softwareag/UniversalMessaging/server/umserver/data
-      - um-logs:/opt/softwareag/UniversalMessaging/server/umserver/logs
+      - um-data:${WMUI_LAB10_UM_DATA_MOUNT_POINT}
+      - um-logs:${WMUI_LAB10_UM_LOGS_MOUNT_POINT}
+    networks:
+      - n1
+  esb-vm:
+    build:
+      context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+      args:
+        - __audit_home_dir=${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
+        - __install_dir=${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
+        - __upd_mgr_home_dir=${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
+        - __user_home=${WMUI_LAB10_ESB_USER_HOME_MOUNT_POINT}
+    image: lab10-esb-vm-1
+    container_name: lab10-esb-vm-1
+    hostname: lab10-esb-vm-1
+    ulimits:
+      nproc: 4096
+      nofile: 65536
+    volumes:
+      - ./config/esb-vm1/:${WMUI_LAB10_ESB_CONFIG_MOUNT_POINT}
+      - ./scripts/esb-vm1/:${WMUI_LAB10_ESB_SCRIPTS_MOUNT_POINT}
+      - ./config/esb-vm1/application.properties:${WMUI_LAB10_ESB_APP_PROPS_MOUNT_POINT}
+      - ${H_WMUI_HOME}:${WMUI_HOME}
+      - esb-vm1-audit:${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
+      - esb-vm1-upd-mgr-home:${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
+      - esb-vm1-user-home:${WMUI_LAB10_ESB_USER_HOME_MOUNT_POINT}
+      - esb-vm1-wm-home:${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
+      - ${H_WMUI_INSTALLER_PATH}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+      - ${H_WMUI_UPD_MGR_PATH}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+      - ${H_WMUI_ESB_PRODUCTS_IMAGE_PATH}:${WMUI_INSTALL_IMAGE_FILE}
+      - ${H_WMUI_ESB_FIXES_IMAGE_PATH}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+    environment:
+      - SAG_IS_CONFIG_PROPERTIES=${WMUI_LAB10_ESB_APP_PROPS_MOUNT_POINT}
+      # setup parameters
+      - WMUI_AUDIT_BASE_DIR=${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
+      - WMUI_DEBUG_ON
+      - WMUI_HOME
+      - WMUI_INSTALL_IMAGE_FILE
+      - WMUI_INSTALL_INSTALL_DIR=${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
+      - WMUI_INSTALL_INSTALLER_BIN
+      - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+      - WMUI_LAB10_PORT_PREFIX
+      - WMUI_ONLINE_MODE
+      - WMUI_PATCH_AVAILABLE
+      - WMUI_PATCH_FIXES_IMAGE_FILE
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+      - WMUI_SDC_ONLINE_MODE
+      - WMUI_UPD_MGR_HOME=${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
+      - WMUI_WORK_DIR
+      # database parameters
+      - WMUI_LAB10_POSTGRESQL_IMAGE
+      - WMUI_LAB10_DBSERVER_HOSTNAME
+      - WMUI_LAB10_DBSERVER_DATABASE_NAME
+      - WMUI_LAB10_DBSERVER_USER_NAME
+      - WMUI_LAB10_DBSERVER_PASSWORD
+      - WMUI_LAB10_DBSERVER_PORT
+      # CDS setup variables
+      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
+      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
+      - WMUI_WMSCRIPT_CDS_CONN_STRING
+    ports:
+      - "${WMUI_LAB10_PORT_PREFIX}53:5543"
+      - "${WMUI_LAB10_PORT_PREFIX}55:5555"
+    networks:
+      - n1    
+    depends_on:
+      um:
+        condition: service_healthy
+    entrypoint: ${WMUI_LAB10_ESB_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
