@@ -1,0 +1,60 @@
+version: '3.8'
+volumes:
+  db-data: {}
+networks:
+    n1:
+      external: false
+services:
+  db:
+    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_TEST_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_TEST_DBSERVER_PASSWORD}
+      - WMUI_TEST_DBSERVER_PORT
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_TEST_DBSERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${WMUI_TEST_PORT_PREFIX}32:5432"
+    volumes: 
+      - db-data:/var/lib/postgresql/data
+    command: -p ${WMUI_TEST_DBSERVER_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s 
+  adminer:
+    image: adminer
+    networks:
+      - n1
+    ports:
+      - ${WMUI_TEST_PORT_PREFIX}80:8080
+    depends_on:
+      db:
+        condition: service_healthy
+  dbc:
+    image: ${WMUI_TEST_DBC_IMAGE}
+    hostname: dbc
+    volumes:
+      - ./scripts/:${WMUI_TEST_LOCAL_SCRIPTS_HOME}
+    environment:
+      # for database configurator
+      - WMUI_TEST_DBSERVER_HOSTNAME
+      - WMUI_TEST_DBSERVER_DATABASE_NAME
+      - WMUI_TEST_DBSERVER_USER_NAME
+      - WMUI_TEST_DBSERVER_PASSWORD
+      - WMUI_TEST_DBSERVER_PORT
+      - WMUI_TEST_DBC_COMPONENT_NAME
+      - WMUI_TEST_DBC_COMPONENT_VERSION
+      - WMUI_TEST_PORT_PREFIX
+    networks:
+      - n1
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ${WMUI_TEST_LOCAL_SCRIPTS_HOME}/containerEntrypoint.sh
