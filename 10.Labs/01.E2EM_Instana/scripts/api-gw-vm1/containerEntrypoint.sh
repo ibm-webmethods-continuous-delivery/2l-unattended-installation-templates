@@ -3,8 +3,8 @@
 # shellcheck source-path=SCRIPTDIR/../../../../
 # shellcheck disable=SC2153,SC2046,SC3043
 
-# This scripts sets up the local installation with MSR and CDS on PostgreSQL
-export WMUI_TEST_HARNESS_ID="E2EM_Instana_Lab_01"
+# This scripts sets up the local installation with API Gateway and CDS on PostgreSQL
+export WMUI_TEST_HARNESS_ID="E2EM_Instana_Lab_01_APIGateway"
 
 export lLOG_PREFIX="$WMUI_TEST_HARNESS_ID/containerEntrypoint.sh - "
 
@@ -66,33 +66,42 @@ setupPrerequisites() {
 }
 
 onInterrupt(){
-	logI "[$lLOG_PREFIX:onInterrupt()] - Interrupted! Shutting down MSR"
+	logI "[${lLOG_PREFIX}:onInterrupt()] - Interrupted! Shutting down API Gateway"
 
-	logI "[$lLOG_PREFIX:onInterrupt()] - Shutting down Integration server ..."
+	logI "[${lLOG_PREFIX}:onInterrupt()] - Shutting down Integration server ..."
     cd "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin" || exit 111
     ./shutdown.sh
 
 	exit 0 # managed expected exit
 }
 
-setupMSR() {
-  logI "[${lLOG_PREFIX}:setupMSR()] - Checking if MSR is already installed..."
+setupAPIGateway() {
+  logI "[${lLOG_PREFIX}:setupAPIGateway()] - Checking if API Gateway is already installed..."
   
-  # Check if MSR is already installed__err_count
+  # Check if API Gateway is already installed
   if [ ! -f "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/startup.sh" ]; then
-    logI "[${lLOG_PREFIX}:setupMSR()] - MSR is not present, setting up..."
+    logI "[${lLOG_PREFIX}:setupAPIGateway()] - API Gateway is not present, setting up..."
     
     # Wait for database to be available
-    logI "[${lLOG_PREFIX}:setupMSR()] - Waiting for database to be available -> ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT}..."
+    logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for database to be available -> ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT}..."
     while ! portIsReachable2 "${WMUI_LAB10_DBSERVER_HOSTNAME}" "${WMUI_LAB10_DBSERVER_PORT}"; do
-        logI "[${lLOG_PREFIX}:setupMSR()] - Waiting for the database to come up, sleeping 5..."
+        logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for the database to come up, sleeping 5..."
         sleep 5
         # TODO: add a maximum retry number
     done
     sleep 5 # allow some time to the DB in any case...
+
+    # Wait for Elasticsearch to be available
+    logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for Elasticsearch to be available -> core-elasticsearch:9200..."
+    while ! curl -s http://core-elasticsearch:9200/_cluster/health | grep -vq '"status":"red"' 2>/dev/null; do
+        logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for Elasticsearch to come up, sleeping 10..."
+        sleep 10
+        # TODO: add a maximum retry number
+    done
+    sleep 5 # allow some time to Elasticsearch in any case...
        
-    # Apply the setup template for MSR with PostgreSQL CDS
-    applySetupTemplate "MSR/1101/selection-20250924" || exit 31
+    # Apply the setup template for API Gateway with PostgreSQL CDS
+    applySetupTemplate "APIGateway/1101/cds-e2e-postgres" || exit 31
 
     ## Work around for CDS BUG ?
     ## TODO: Investigate injection variables for unattended setup
@@ -100,52 +109,55 @@ setupMSR() {
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/instances/default/config/jdbc/properties" \
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/config/jdbc/properties"
   else
-    logI "[${lLOG_PREFIX}:setupMSR()] - MSR installation found, skipping setup."
+    logI "[${lLOG_PREFIX}:setupAPIGateway()] - API Gateway installation found, skipping setup."
   fi
 }
 
-startMSR() {
-  logI "[${lLOG_PREFIX}:startMSR()] - Starting MSR..."
+startAPIGateway() {
+  logI "[${lLOG_PREFIX}:startAPIGateway()] - Starting API Gateway..."
   
-  # Start Integration Server / MSR
-  #"${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/startup.sh" &
-
-  cd "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin"
+  # Start Integration Server / API Gateway
+  cd "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin" || exit 33
   nohup ./server.sh &
 
-  MSR_PID=$!
+  APIGW_PID=$!
   
-  # Wait for MSR to be ready
+  # Wait for API Gateway to be ready
   local retries=0
   local max_retries=200
   while [ $retries -lt $max_retries ]; do
-    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/invoke/wm.server/ping 2>/dev/null; then
-      logI "[${lLOG_PREFIX}:startMSR()] - MSR is ready!"
+    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health 2>/dev/null; then
+      logI "[${lLOG_PREFIX}:startAPIGateway()] - API Gateway is ready!"
       break
     fi
-    logI "[${lLOG_PREFIX}:startMSR()] - Waiting for MSR to start... (attempt $((retries + 1))/$max_retries)"
+    logI "[${lLOG_PREFIX}:startAPIGateway()] - Waiting for API Gateway to start... (attempt $((retries + 1))/$max_retries)"
     sleep 10
     retries=$((retries + 1))
   done
   
   if [ $retries -eq $max_retries ]; then
-    logE "[${lLOG_PREFIX}:startMSR()] - MSR failed to start within expected time!"
+    logE "[${lLOG_PREFIX}:startAPIGateway()] - API Gateway failed to start within expected time!"
     return 32
   fi
 }
 
 showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana - API Gateway"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - MSR Admin UI: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}55"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Admin UI: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}72"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Runtime Port: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}73"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Integration Server Admin: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}55"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Kibana Dashboard: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}56"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticsearch: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}20"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticvue (ES Explorer): http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}81"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}80"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database connection details:"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_DBSERVER_HOSTNAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_DBSERVER_DATABASE_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_DBSERVER_USER_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_DBSERVER_PASSWORD}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_LAB10_DBSERVER_HOSTNAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_LAB10_DBSERVER_DATABASE_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_LAB10_DBSERVER_USER_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_LAB10_DBSERVER_PASSWORD}"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Issue 'docker-compose down -t 80' to close this project!"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
@@ -153,19 +165,19 @@ showAccessInfo() {
 
 # Main execution flow
 main() {
-  logI "[${lLOG_PREFIX}:main()] - Starting MSR selection 20250924 setup..."
+  logI "[${lLOG_PREFIX}:main()] - Starting API Gateway CDS E2E Postgres setup..."
   
   setupPrerequisites || exit $?
 
   trap "onInterrupt" INT TERM
 
-  setupMSR || exit $?
-  startMSR || exit $?
+  setupAPIGateway || exit $?
+  startAPIGateway || exit $?
   showAccessInfo
   
-  # Keep container running by waiting on the MSR process
-  logI "[${lLOG_PREFIX}:main()] - Waiting on MSR process (PID: ${MSR_PID})..."
-  wait ${MSR_PID}
+  # Keep container running by waiting on the API Gateway process
+  logI "[${lLOG_PREFIX}:main()] - Waiting on API Gateway process (PID: ${APIGW_PID})..."
+  wait ${APIGW_PID}
 }
 
 main "$@"
