@@ -258,7 +258,7 @@ services:
       - n1
     mem_reservation: 1g
     mem_limit: 1g
-    cpus: 1
+    #cpus: 1
     ulimits:
       nofile:
         soft: 65536
@@ -278,7 +278,7 @@ services:
         condition: service_healthy
     mem_reservation: 100m
     mem_limit: 500m
-    cpus: 1
+    #cpus: 1
   core-kibana:
     image: docker.elastic.co/kibana/kibana:${WMUI_LAB10_ELK_VERSION}
     depends_on:
@@ -302,4 +302,4 @@ services:
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
     mem_reservation: 200m
     mem_limit: 1g
-    cpus: 1
+    #cpus: 1

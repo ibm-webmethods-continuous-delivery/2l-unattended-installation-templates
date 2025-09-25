@@ -10,6 +10,7 @@ services:
     environment:
       - POSTGRES_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
       - POSTGRES_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
+      - WMUI_LAB10_HOST_NAME
     networks:
       n1:
         aliases:
