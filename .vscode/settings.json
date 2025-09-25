@@ -32,6 +32,7 @@
     "microdnf",
     "microgateway",
     "nofile",
+    "nohup",
     "nologin",
     "pgsql",
     "procps",

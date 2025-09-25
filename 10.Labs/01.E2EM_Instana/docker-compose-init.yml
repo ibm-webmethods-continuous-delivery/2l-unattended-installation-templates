@@ -41,7 +41,7 @@ services:
     volumes:
       - ./scripts/dbc:${WMUI_LAB10_GUEST_SCRIPTS_MOUNT_POINT}
     environment:
-      # for database configurator
+      # for database configurator - creates schemas for both MSR and API Gateway
       - WMUI_LAB10_DBSERVER_HOSTNAME
       - WMUI_LAB10_DBSERVER_DATABASE_NAME
       - WMUI_LAB10_DBSERVER_USER_NAME
