@@ -102,7 +102,7 @@ setupMSR() {
 
     ## Set Up E2EM, see https://www.ibm.com/docs/en/wm-end-to-end-monitoring?topic=installer-webmethods-microservices-runtime
     mv \
-      "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uhm-onpremise-is-plugin.jar" \
+      "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-onpremise-is-plugin.jar" \
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
 
     mv \
@@ -110,8 +110,8 @@ setupMSR() {
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
 
     {
-      echo "JAVA_UHM_OPTS=\"-javaagent:../E2EMonitoring/agent/uhm-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uhm-apm-agent.jar\""
-      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} ${JAVA_UHM_OPTS}\""
+      echo "JAVA_UHA_OPTS=\"-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar\""
+      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}\""
       echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml\""
     } >> "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/setenv.sh"
 
