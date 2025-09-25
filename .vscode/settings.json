@@ -18,6 +18,7 @@
     "elasticvue",
     "envsubst",
     "esdata",
+    "findutils",
     "Glassfish",
     "healthcheck",
     "Instana",
