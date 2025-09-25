@@ -145,7 +145,7 @@ startAPIGateway() {
   local retries=0
   local max_retries=200
   while [ $retries -lt $max_retries ]; do
-    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health 2>/dev/null; then
+    if curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health 2>/dev/null; then
       logI "[${lLOG_PREFIX}:startAPIGateway()] - API Gateway is ready!"
       break
     fi
@@ -164,13 +164,13 @@ showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana - API Gateway"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Admin UI: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}72"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Runtime Port: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}73"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Integration Server Admin: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}55"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Kibana Dashboard: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}56"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticsearch: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}20"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticvue (ES Explorer): http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}81"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}80"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Admin UI: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}72"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Runtime Port: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}73"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Integration Server Admin: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}57"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Kibana Dashboard: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}56"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticsearch: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}20"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticvue (ES Explorer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}81"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database connection details:"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_LAB10_DBSERVER_HOSTNAME}"

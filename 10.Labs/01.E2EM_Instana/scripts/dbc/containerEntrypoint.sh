@@ -56,5 +56,4 @@ createDbAssets(){
 }
 createDbAssets
 
-
-echo "Go to http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}80 and check the database content!. Look at the .env file for details!"
+echo "Go to http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80 and check the database content!. Look at the .env file for details!"

@@ -21,6 +21,7 @@ services:
     environment:
       - POSTGRES_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
       - POSTGRES_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
+      - WMUI_LAB10_HOST_NAME
     networks:
       n1:
         aliases:
@@ -37,7 +38,6 @@ services:
       timeout: 60s
       retries: 5
       start_period: 80s
-
   adminer:
     image: adminer
     networks:
@@ -51,12 +51,17 @@ services:
     image: ${WMUI_LAB10_UM_IMAGE}
     environment:
       - REALM_NAME=${WMUI_LAB10_UM_REALM_NAME}
+      - INIT_JAVA_MEM_SIZE=256M
+      - MAX_JAVA_MEM_SIZE=512M
+      - MAX_DIRECT_MEM_SIZE=256M
     # comment out ports, supposed to be used internally only
     #ports:
     #  - "${WMUI_LAB10_PORT_PREFIX}99:9000"
     volumes:
       - um-data:${WMUI_LAB10_UM_DATA_MOUNT_POINT}
       - um-logs:${WMUI_LAB10_UM_LOGS_MOUNT_POINT}
+    mem_reservation: 1g
+    mem_limit: 1g
     networks:
       - n1
   esb-vm:
@@ -126,6 +131,8 @@ services:
       - SW_AGENT_EXT_SYSTEM_USER
       - SW_AGENT_EXT_SYSTEM_PASSWORD
       - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
+      - WMUI_LAB10_HOST_NAME
+      - JAVA_MAX_MEM=384M
     ports:
       - "${WMUI_LAB10_PORT_PREFIX}53:5543"
       - "${WMUI_LAB10_PORT_PREFIX}55:5555"
@@ -134,8 +141,11 @@ services:
     depends_on:
       um:
         condition: service_healthy
+    healthcheck:
+      interval: 10s
+      retries: 200
+      test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/health
     entrypoint: ${WMUI_LAB10_ESB_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
-
   apigateway:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
@@ -199,7 +209,7 @@ services:
       - apigw_elasticsearch_http_username=${WMUI_LAB10_ELASTIC_USERNAME}
       - apigw_elasticsearch_http_password=${WMUI_LAB10_ELASTIC_PASSWORD}
       # external kibana
-      - apigw_kibana_dashboardInstance=http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}56
+      - apigw_kibana_dashboardInstance=${WMUI_LAB10_APIGW_KIBANA_BASE_URL}
       # E2EM variables
       - SW_AGENT_COLLECTOR_ESTABLISH_CLOUD_COMMUNICATION
       - SW_AGENT_EXTERNAL_ESTABLISH_COMMUNICATION
@@ -210,11 +220,12 @@ services:
       - SW_AGENT_EXT_SYSTEM_USER
       - SW_AGENT_EXT_SYSTEM_PASSWORD
       - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
-
+      - WMUI_LAB10_HOST_NAME
+      - JAVA_MAX_MEM=512M
     ports:
       - "${WMUI_LAB10_PORT_PREFIX}73:9073"
       - "${WMUI_LAB10_PORT_PREFIX}72:9072"
-      - "${WMUI_LAB10_PORT_PREFIX}55:5555"
+      - "${WMUI_LAB10_PORT_PREFIX}57:5555"
     networks:
       - n1
     depends_on:
@@ -222,12 +233,13 @@ services:
         condition: service_healthy
       core-elasticsearch:
         condition: service_healthy
+      esb-vm:
+        condition: service_healthy
     entrypoint: ${WMUI_LAB10_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
     healthcheck:
       interval: 10s
       retries: 200
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
-
+      test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
   core-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_LAB10_ELK_VERSION}
     volumes:
@@ -244,7 +256,7 @@ services:
       - ${WMUI_LAB10_PORT_PREFIX}20:9200
     networks:
       - n1
-    mem_reservation: 1g 
+    mem_reservation: 1g
     mem_limit: 1g
     cpus: 1
     ulimits:
@@ -255,7 +267,6 @@ services:
       interval: 20s
       retries: 10
       test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
-  
   elasticvue:
     image: cars10/elasticvue
     ports:
@@ -268,7 +279,6 @@ services:
     mem_reservation: 100m
     mem_limit: 500m
     cpus: 1
-  
   core-kibana:
     image: docker.elastic.co/kibana/kibana:${WMUI_LAB10_ELK_VERSION}
     depends_on:
@@ -277,7 +287,7 @@ services:
     environment:
       - ELASTICSEARCH_URL=http://core-elasticsearch:9200
       - ELASTICSEARCH_HOSTS=http://core-elasticsearch:9200
-      - KIBANA_EXTERNAL_HOSTNAME=http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}56
+      - KIBANA_EXTERNAL_HOSTNAME=${WMUI_LAB10_APIGW_KIBANA_BASE_URL}
       - ELASTICSEARCH_USERNAME=${WMUI_LAB10_ELASTIC_USERNAME}
       - ELASTICSEARCH_PASSWORD=${WMUI_LAB10_ELASTIC_PASSWORD}
       - SERVER_BASEPATH=/apigatewayui/dashboardproxy

@@ -135,7 +135,7 @@ startMSR() {
   local retries=0
   local max_retries=200
   while [ $retries -lt $max_retries ]; do
-    if curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/invoke/wm.server/ping 2>/dev/null; then
+    if curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/invoke/wm.server/ping 2>/dev/null; then
       logI "[${lLOG_PREFIX}:startMSR()] - MSR is ready!"
       break
     fi
@@ -154,8 +154,8 @@ showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - MSR Admin UI: http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}55"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://host.docker.internal:${WMUI_LAB10_PORT_PREFIX}80"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - MSR Admin UI: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}55"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database connection details:"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_DBSERVER_HOSTNAME}"
@@ -181,7 +181,7 @@ main() {
   
   # Keep container running by waiting on the MSR process
   logI "[${lLOG_PREFIX}:main()] - Waiting on MSR process (PID: ${MSR_PID})..."
-  wait ${MSR_PID}
+  wait "${MSR_PID}"
 }
 
 main "$@"
