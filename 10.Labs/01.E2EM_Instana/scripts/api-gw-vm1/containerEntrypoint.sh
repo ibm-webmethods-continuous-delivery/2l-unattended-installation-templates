@@ -112,22 +112,22 @@ setupAPIGateway() {
     if [ "${WMUI_LAB01_APIGW_ENABLE_E2EM_AGENT}" = "true" ]; then
       logI "Setting up E2EM agent ..."
       ## Set Up E2EM, see https://www.ibm.com/docs/en/wm-end-to-end-monitoring?topic=installer-webmethods-microservices-runtime
-      mv \
+      cp \
         "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-onpremise-is-http-plugin.jar" \
         "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
-      mv \
+      cp \
         "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-api-onpremise-plugin.jar" \
         "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
 
-      mv \
+      cp \
         "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/config/e2ecustomlogback.xml" \
         "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
 
       {
         echo 'JAVA_UHA_OPTS="-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar"'
-      # shellcheck disable=SC2016
+        # shellcheck disable=SC2016
         echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}"'
-      # shellcheck disable=SC2016
+        # shellcheck disable=SC2016
         echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml"'
       } >> "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/setenv.sh"
     else

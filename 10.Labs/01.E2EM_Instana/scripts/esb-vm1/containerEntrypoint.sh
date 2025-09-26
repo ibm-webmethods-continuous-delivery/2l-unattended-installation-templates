@@ -101,11 +101,11 @@ setupMSR() {
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/config/jdbc/properties"
 
     ## Set Up E2EM, see https://www.ibm.com/docs/en/wm-end-to-end-monitoring?topic=installer-webmethods-microservices-runtime
-    mv \
+    cp \
       "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-onpremise-is-plugin.jar" \
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
 
-    mv \
+    cp \
       "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/config/e2ecustomlogback.xml" \
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
 
