@@ -83,8 +83,8 @@ setupAPIGateway() {
     logI "[${lLOG_PREFIX}:setupAPIGateway()] - API Gateway is not present, setting up..."
     
     # Wait for database to be available
-    logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for database to be available -> ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT}..."
-    while ! portIsReachable2 "${WMUI_LAB10_DBSERVER_HOSTNAME}" "${WMUI_LAB10_DBSERVER_PORT}"; do
+    logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for database to be available -> ${WMUI_LAB01_DBSERVER_HOSTNAME}:${WMUI_LAB01_DBSERVER_PORT}..."
+    while ! portIsReachable2 "${WMUI_LAB01_DBSERVER_HOSTNAME}" "${WMUI_LAB01_DBSERVER_PORT}"; do
         logI "[${lLOG_PREFIX}:setupAPIGateway()] - Waiting for the database to come up, sleeping 5..."
         sleep 5
         # TODO: add a maximum retry number
@@ -109,23 +109,30 @@ setupAPIGateway() {
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/instances/default/config/jdbc/properties" \
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/config/jdbc/properties"
 
-    ## Set Up E2EM, see https://www.ibm.com/docs/en/wm-end-to-end-monitoring?topic=installer-webmethods-microservices-runtime
-    mv \
-      "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-onpremise-is-http-plugin.jar" \
-      "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
-    mv \
-      "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-api-onpremise-plugin.jar" \
-      "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
+    if [ "${WMUI_LAB01_APIGW_ENABLE_E2EM_AGENT}" = "true" ]; then
+      logI "Setting up E2EM agent ..."
+      ## Set Up E2EM, see https://www.ibm.com/docs/en/wm-end-to-end-monitoring?topic=installer-webmethods-microservices-runtime
+      mv \
+        "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-onpremise-is-http-plugin.jar" \
+        "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
+      mv \
+        "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-api-onpremise-plugin.jar" \
+        "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
 
-    mv \
-      "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/config/e2ecustomlogback.xml" \
-      "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
+      mv \
+        "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/config/e2ecustomlogback.xml" \
+        "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
 
-    {
-      echo "JAVA_UHA_OPTS=\"-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar\""
-      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}\""
-      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml\""
-    } >> "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/setenv.sh"
+      {
+        echo 'JAVA_UHA_OPTS="-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar"'
+      # shellcheck disable=SC2016
+        echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}"'
+      # shellcheck disable=SC2016
+        echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml"'
+      } >> "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/setenv.sh"
+    else
+      logI "E2EM configuration skipped due to environment variable switch"
+    fi
 
   else
     logI "[${lLOG_PREFIX}:setupAPIGateway()] - API Gateway installation found, skipping setup."
@@ -164,19 +171,19 @@ showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana - API Gateway"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Admin UI: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}72"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Runtime Port: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}73"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Integration Server Admin: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}57"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Kibana Dashboard: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}56"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticsearch: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}20"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticvue (ES Explorer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}81"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Admin UI: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}72"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - API Gateway Runtime Port: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}73"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Integration Server Admin: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}57"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Kibana Dashboard: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}56"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticsearch: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}20"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Elasticvue (ES Explorer): http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}81"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}80"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database connection details:"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_LAB10_DBSERVER_HOSTNAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_LAB10_DBSERVER_DATABASE_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_LAB10_DBSERVER_USER_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_LAB10_DBSERVER_PASSWORD}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_LAB01_DBSERVER_HOSTNAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_LAB01_DBSERVER_DATABASE_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_LAB01_DBSERVER_USER_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_LAB01_DBSERVER_PASSWORD}"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Issue 'docker-compose down -t 80' to close this project!"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="

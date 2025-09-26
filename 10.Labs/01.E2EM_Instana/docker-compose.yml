@@ -16,22 +16,22 @@ networks:
       external: false
 services:
   db:
-    image: ${WMUI_LAB10_POSTGRESQL_IMAGE}
+    image: ${WMUI_LAB01_POSTGRESQL_IMAGE}
     restart: always
     environment:
-      - POSTGRES_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
-      - POSTGRES_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
-      - WMUI_LAB10_HOST_NAME
+      - POSTGRES_USER=${WMUI_LAB01_DBSERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_LAB01_DBSERVER_PASSWORD}
+      - WMUI_LAB01_HOST_NAME
     networks:
       n1:
         aliases:
-          - ${WMUI_LAB10_DBSERVER_HOSTNAME}
+          - ${WMUI_LAB01_DBSERVER_HOSTNAME}
     # comment out ports, supposed to be used internally only
     #ports:
-    #  - "${WMUI_LAB10_PORT_PREFIX}32:5432"
+    #  - "${WMUI_LAB01_PORT_PREFIX}32:5432"
     volumes: 
       - db-data:/var/lib/postgresql/data
-    command: -p ${WMUI_LAB10_DBSERVER_PORT}
+    command: -p ${WMUI_LAB01_DBSERVER_PORT}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
       interval: 30s
@@ -43,23 +43,23 @@ services:
     networks:
       - n1
     ports:
-      - ${WMUI_LAB10_PORT_PREFIX}80:8080
+      - ${WMUI_LAB01_PORT_PREFIX}80:8080
     depends_on:
       db:
         condition: service_healthy
   um:
-    image: ${WMUI_LAB10_UM_IMAGE}
+    image: ${WMUI_LAB01_UM_IMAGE}
     environment:
-      - REALM_NAME=${WMUI_LAB10_UM_REALM_NAME}
+      - REALM_NAME=${WMUI_LAB01_UM_REALM_NAME}
       - INIT_JAVA_MEM_SIZE=256M
       - MAX_JAVA_MEM_SIZE=512M
       - MAX_DIRECT_MEM_SIZE=256M
     # comment out ports, supposed to be used internally only
     #ports:
-    #  - "${WMUI_LAB10_PORT_PREFIX}99:9000"
+    #  - "${WMUI_LAB01_PORT_PREFIX}99:9000"
     volumes:
-      - um-data:${WMUI_LAB10_UM_DATA_MOUNT_POINT}
-      - um-logs:${WMUI_LAB10_UM_LOGS_MOUNT_POINT}
+      - um-data:${WMUI_LAB01_UM_DATA_MOUNT_POINT}
+      - um-logs:${WMUI_LAB01_UM_LOGS_MOUNT_POINT}
     mem_reservation: 1g
     mem_limit: 1g
     networks:
@@ -68,58 +68,58 @@ services:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
-        - __audit_home_dir=${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
-        - __install_dir=${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
-        - __upd_mgr_home_dir=${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
-        - __user_home=${WMUI_LAB10_ESB_USER_HOME_MOUNT_POINT}
-    image: lab10-esb-vm-1
-    container_name: lab10-esb-vm-1
-    hostname: lab10-esb-vm-1
+        - __audit_home_dir=${WMUI_LAB01_ESB_AUDIT_MOUNT_POINT}
+        - __install_dir=${WMUI_LAB01_ESB_WM_HOME_MOUNT_POINT}
+        - __upd_mgr_home_dir=${WMUI_LAB01_ESB_UPD_MGR_HOME_MOUNT_POINT}
+        - __user_home=${WMUI_LAB01_ESB_USER_HOME_MOUNT_POINT}
+    image: lab01-esb-vm-1
+    container_name: lab01-esb-vm-1
+    hostname: lab01-esb-vm-1
     ulimits:
       nproc: 4096
       nofile: 65536
     volumes:
-      - ./config/esb-vm1/:${WMUI_LAB10_ESB_CONFIG_MOUNT_POINT}
-      - ./scripts/esb-vm1/:${WMUI_LAB10_ESB_SCRIPTS_MOUNT_POINT}
-      - ./config/esb-vm1/application.properties:${WMUI_LAB10_ESB_APP_PROPS_MOUNT_POINT}
+      - ./config/esb-vm1/:${WMUI_LAB01_ESB_CONFIG_MOUNT_POINT}
+      - ./scripts/esb-vm1/:${WMUI_LAB01_ESB_SCRIPTS_MOUNT_POINT}
+      - ./config/esb-vm1/application.properties:${WMUI_LAB01_ESB_APP_PROPS_MOUNT_POINT}
       - ${H_WMUI_HOME}:${WMUI_HOME}
-      - esb-vm1-audit:${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
-      - esb-vm1-upd-mgr-home:${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
-      - esb-vm1-user-home:${WMUI_LAB10_ESB_USER_HOME_MOUNT_POINT}
-      - esb-vm1-wm-home:${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
+      - esb-vm1-audit:${WMUI_LAB01_ESB_AUDIT_MOUNT_POINT}
+      - esb-vm1-upd-mgr-home:${WMUI_LAB01_ESB_UPD_MGR_HOME_MOUNT_POINT}
+      - esb-vm1-user-home:${WMUI_LAB01_ESB_USER_HOME_MOUNT_POINT}
+      - esb-vm1-wm-home:${WMUI_LAB01_ESB_WM_HOME_MOUNT_POINT}
       - ${H_WMUI_INSTALLER_PATH}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
       - ${H_WMUI_UPD_MGR_PATH}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
       - ${H_WMUI_ESB_PRODUCTS_IMAGE_PATH}:${WMUI_INSTALL_IMAGE_FILE}
       - ${H_WMUI_ESB_FIXES_IMAGE_PATH}:${WMUI_PATCH_FIXES_IMAGE_FILE}
     environment:
-      - SAG_IS_CONFIG_PROPERTIES=${WMUI_LAB10_ESB_APP_PROPS_MOUNT_POINT}
+      - SAG_IS_CONFIG_PROPERTIES=${WMUI_LAB01_ESB_APP_PROPS_MOUNT_POINT}
       # setup parameters
-      - WMUI_AUDIT_BASE_DIR=${WMUI_LAB10_ESB_AUDIT_MOUNT_POINT}
+      - WMUI_AUDIT_BASE_DIR=${WMUI_LAB01_ESB_AUDIT_MOUNT_POINT}
       - WMUI_DEBUG_ON
       - WMUI_HOME
       - WMUI_INSTALL_IMAGE_FILE
-      - WMUI_INSTALL_INSTALL_DIR=${WMUI_LAB10_ESB_WM_HOME_MOUNT_POINT}
+      - WMUI_INSTALL_INSTALL_DIR=${WMUI_LAB01_ESB_WM_HOME_MOUNT_POINT}
       - WMUI_INSTALL_INSTALLER_BIN
       - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
-      - WMUI_LAB10_PORT_PREFIX
+      - WMUI_LAB01_PORT_PREFIX
       - WMUI_ONLINE_MODE
       - WMUI_PATCH_AVAILABLE
       - WMUI_PATCH_FIXES_IMAGE_FILE
       - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
       - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
       - WMUI_SDC_ONLINE_MODE
-      - WMUI_UPD_MGR_HOME=${WMUI_LAB10_ESB_UPD_MGR_HOME_MOUNT_POINT}
+      - WMUI_UPD_MGR_HOME=${WMUI_LAB01_ESB_UPD_MGR_HOME_MOUNT_POINT}
       - WMUI_WORK_DIR
       # database parameters
-      - WMUI_LAB10_POSTGRESQL_IMAGE
-      - WMUI_LAB10_DBSERVER_HOSTNAME
-      - WMUI_LAB10_DBSERVER_DATABASE_NAME
-      - WMUI_LAB10_DBSERVER_USER_NAME
-      - WMUI_LAB10_DBSERVER_PASSWORD
-      - WMUI_LAB10_DBSERVER_PORT
+      - WMUI_LAB01_POSTGRESQL_IMAGE
+      - WMUI_LAB01_DBSERVER_HOSTNAME
+      - WMUI_LAB01_DBSERVER_DATABASE_NAME
+      - WMUI_LAB01_DBSERVER_USER_NAME
+      - WMUI_LAB01_DBSERVER_PASSWORD
+      - WMUI_LAB01_DBSERVER_PORT
       # CDS setup variables
-      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
-      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
+      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_LAB01_DBSERVER_PASSWORD}
+      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_LAB01_DBSERVER_USER_NAME}
       - WMUI_WMSCRIPT_CDS_CONN_STRING
       # E2EM variables
       - SW_AGENT_COLLECTOR_ESTABLISH_CLOUD_COMMUNICATION
@@ -131,11 +131,11 @@ services:
       - SW_AGENT_EXT_SYSTEM_USER
       - SW_AGENT_EXT_SYSTEM_PASSWORD
       - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
-      - WMUI_LAB10_HOST_NAME
+      - WMUI_LAB01_HOST_NAME
       - JAVA_MAX_MEM=384M
     ports:
-      - "${WMUI_LAB10_PORT_PREFIX}53:5543"
-      - "${WMUI_LAB10_PORT_PREFIX}55:5555"
+      - "${WMUI_LAB01_PORT_PREFIX}53:5543"
+      - "${WMUI_LAB01_PORT_PREFIX}55:5555"
     networks:
       - n1    
     depends_on:
@@ -145,71 +145,71 @@ services:
       interval: 10s
       retries: 200
       test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/health
-    entrypoint: ${WMUI_LAB10_ESB_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
+    entrypoint: ${WMUI_LAB01_ESB_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
   apigateway:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
-        - __audit_home_dir=${WMUI_LAB10_APIGW_AUDIT_MOUNT_POINT}
-        - __install_dir=${WMUI_LAB10_APIGW_WM_HOME_MOUNT_POINT}
-        - __upd_mgr_home_dir=${WMUI_LAB10_APIGW_UPD_MGR_HOME_MOUNT_POINT}
-        - __user_home=${WMUI_LAB10_APIGW_USER_HOME_MOUNT_POINT}
-    image: lab10-api-gw-vm-1
-    container_name: lab10-api-gw-vm-1
-    hostname: lab10-api-gw-vm-1
+        - __audit_home_dir=${WMUI_LAB01_APIGW_AUDIT_MOUNT_POINT}
+        - __install_dir=${WMUI_LAB01_APIGW_WM_HOME_MOUNT_POINT}
+        - __upd_mgr_home_dir=${WMUI_LAB01_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+        - __user_home=${WMUI_LAB01_APIGW_USER_HOME_MOUNT_POINT}
+    image: lab01-api-gw-vm-1
+    container_name: lab01-api-gw-vm-1
+    hostname: lab01-api-gw-vm-1
     ulimits:
       nproc: 4096
       nofile: 65536
     volumes:
-      - ./config/api-gw-vm1/:${WMUI_LAB10_APIGW_CONFIG_MOUNT_POINT}
-      - ./scripts/api-gw-vm1/:${WMUI_LAB10_APIGW_SCRIPTS_MOUNT_POINT}
-      - ./config/api-gw-vm1/application.properties:${WMUI_LAB10_APIGW_APP_PROPS_MOUNT_POINT}
+      - ./config/api-gw-vm1/:${WMUI_LAB01_APIGW_CONFIG_MOUNT_POINT}
+      - ./scripts/api-gw-vm1/:${WMUI_LAB01_APIGW_SCRIPTS_MOUNT_POINT}
+      - ./config/api-gw-vm1/application.properties:${WMUI_LAB01_APIGW_APP_PROPS_MOUNT_POINT}
       - ${H_WMUI_HOME}:${WMUI_HOME}
-      - apigw-vm1-audit:${WMUI_LAB10_APIGW_AUDIT_MOUNT_POINT}
-      - apigw-vm1-upd-mgr-home:${WMUI_LAB10_APIGW_UPD_MGR_HOME_MOUNT_POINT}
-      - apigw-vm1-user-home:${WMUI_LAB10_APIGW_USER_HOME_MOUNT_POINT}
-      - apigw-vm1-wm-home:${WMUI_LAB10_APIGW_WM_HOME_MOUNT_POINT}
+      - apigw-vm1-audit:${WMUI_LAB01_APIGW_AUDIT_MOUNT_POINT}
+      - apigw-vm1-upd-mgr-home:${WMUI_LAB01_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+      - apigw-vm1-user-home:${WMUI_LAB01_APIGW_USER_HOME_MOUNT_POINT}
+      - apigw-vm1-wm-home:${WMUI_LAB01_APIGW_WM_HOME_MOUNT_POINT}
       - ${H_WMUI_INSTALLER_PATH}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
       - ${H_WMUI_UPD_MGR_PATH}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
       - ${H_WMUI_APIGW_PRODUCTS_IMAGE_PATH}:${WMUI_INSTALL_IMAGE_FILE}
       - ${H_WMUI_APIGW_FIXES_IMAGE_PATH}:${WMUI_PATCH_FIXES_IMAGE_FILE}
     environment:
-      - SAG_IS_CONFIG_PROPERTIES=${WMUI_LAB10_APIGW_APP_PROPS_MOUNT_POINT}
+      - SAG_IS_CONFIG_PROPERTIES=${WMUI_LAB01_APIGW_APP_PROPS_MOUNT_POINT}
       # setup parameters
-      - WMUI_AUDIT_BASE_DIR=${WMUI_LAB10_APIGW_AUDIT_MOUNT_POINT}
+      - WMUI_AUDIT_BASE_DIR=${WMUI_LAB01_APIGW_AUDIT_MOUNT_POINT}
       - WMUI_DEBUG_ON
       - WMUI_HOME
       - WMUI_INSTALL_IMAGE_FILE
-      - WMUI_INSTALL_INSTALL_DIR=${WMUI_LAB10_APIGW_WM_HOME_MOUNT_POINT}
+      - WMUI_INSTALL_INSTALL_DIR=${WMUI_LAB01_APIGW_WM_HOME_MOUNT_POINT}
       - WMUI_INSTALL_INSTALLER_BIN
       - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
-      - WMUI_LAB10_PORT_PREFIX
+      - WMUI_LAB01_PORT_PREFIX
       - WMUI_ONLINE_MODE
       - WMUI_PATCH_AVAILABLE
       - WMUI_PATCH_FIXES_IMAGE_FILE
       - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
       - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
       - WMUI_SDC_ONLINE_MODE
-      - WMUI_UPD_MGR_HOME=${WMUI_LAB10_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+      - WMUI_UPD_MGR_HOME=${WMUI_LAB01_APIGW_UPD_MGR_HOME_MOUNT_POINT}
       - WMUI_WORK_DIR
       # database parameters
-      - WMUI_LAB10_POSTGRESQL_IMAGE
-      - WMUI_LAB10_DBSERVER_HOSTNAME
-      - WMUI_LAB10_DBSERVER_DATABASE_NAME
-      - WMUI_LAB10_DBSERVER_USER_NAME
-      - WMUI_LAB10_DBSERVER_PASSWORD
-      - WMUI_LAB10_DBSERVER_PORT
+      - WMUI_LAB01_POSTGRESQL_IMAGE
+      - WMUI_LAB01_DBSERVER_HOSTNAME
+      - WMUI_LAB01_DBSERVER_DATABASE_NAME
+      - WMUI_LAB01_DBSERVER_USER_NAME
+      - WMUI_LAB01_DBSERVER_PASSWORD
+      - WMUI_LAB01_DBSERVER_PORT
       # CDS setup variables
-      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_LAB10_DBSERVER_PASSWORD}
-      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_LAB10_DBSERVER_USER_NAME}
+      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_LAB01_DBSERVER_PASSWORD}
+      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_LAB01_DBSERVER_USER_NAME}
       - WMUI_WMSCRIPT_CDS_CONN_STRING
       # Elasticsearch configuration
       - apigw_elasticsearch_hosts=core-elasticsearch:9200
       - apigw_elasticsearch_https_enabled=false
-      - apigw_elasticsearch_http_username=${WMUI_LAB10_ELASTIC_USERNAME}
-      - apigw_elasticsearch_http_password=${WMUI_LAB10_ELASTIC_PASSWORD}
+      - apigw_elasticsearch_http_username=${WMUI_LAB01_ELASTIC_USERNAME}
+      - apigw_elasticsearch_http_password=${WMUI_LAB01_ELASTIC_PASSWORD}
       # external kibana
-      - apigw_kibana_dashboardInstance=${WMUI_LAB10_APIGW_KIBANA_BASE_URL}
+      - apigw_kibana_dashboardInstance=${WMUI_LAB01_APIGW_KIBANA_BASE_URL}
       # E2EM variables
       - SW_AGENT_COLLECTOR_ESTABLISH_CLOUD_COMMUNICATION
       - SW_AGENT_EXTERNAL_ESTABLISH_COMMUNICATION
@@ -220,12 +220,13 @@ services:
       - SW_AGENT_EXT_SYSTEM_USER
       - SW_AGENT_EXT_SYSTEM_PASSWORD
       - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
-      - WMUI_LAB10_HOST_NAME
+      - WMUI_LAB01_HOST_NAME
       - JAVA_MAX_MEM=512M
+      - WMUI_LAB01_APIGW_ENABLE_E2EM_AGENT
     ports:
-      - "${WMUI_LAB10_PORT_PREFIX}73:9073"
-      - "${WMUI_LAB10_PORT_PREFIX}72:9072"
-      - "${WMUI_LAB10_PORT_PREFIX}57:5555"
+      - "${WMUI_LAB01_PORT_PREFIX}73:9073"
+      - "${WMUI_LAB01_PORT_PREFIX}72:9072"
+      - "${WMUI_LAB01_PORT_PREFIX}57:5555"
     networks:
       - n1
     depends_on:
@@ -235,13 +236,13 @@ services:
         condition: service_healthy
       esb-vm:
         condition: service_healthy
-    entrypoint: ${WMUI_LAB10_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
+    entrypoint: ${WMUI_LAB01_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
     healthcheck:
       interval: 10s
       retries: 200
       test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
   core-elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_LAB10_ELK_VERSION}
+    image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_LAB01_ELK_VERSION}
     volumes:
       - esdata:/usr/share/elasticsearch/data
     environment:
@@ -250,10 +251,10 @@ services:
       - http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
       - http.cors.enabled=true
       - http.cors.allow-origin=/.*/
-      - ELASTIC_USERNAME=${WMUI_LAB10_ELASTIC_USERNAME}
-      - ELASTIC_PASSWORD=${WMUI_LAB10_ELASTIC_PASSWORD}
+      - ELASTIC_USERNAME=${WMUI_LAB01_ELASTIC_USERNAME}
+      - ELASTIC_PASSWORD=${WMUI_LAB01_ELASTIC_PASSWORD}
     ports:
-      - ${WMUI_LAB10_PORT_PREFIX}20:9200
+      - ${WMUI_LAB01_PORT_PREFIX}20:9200
     networks:
       - n1
     mem_reservation: 1g
@@ -270,7 +271,7 @@ services:
   elasticvue:
     image: cars10/elasticvue
     ports:
-      - "${WMUI_LAB10_PORT_PREFIX}81:8080"
+      - "${WMUI_LAB01_PORT_PREFIX}81:8080"
     networks:
       - n1
     depends_on:
@@ -280,20 +281,20 @@ services:
     mem_limit: 500m
     #cpus: 1
   core-kibana:
-    image: docker.elastic.co/kibana/kibana:${WMUI_LAB10_ELK_VERSION}
+    image: docker.elastic.co/kibana/kibana:${WMUI_LAB01_ELK_VERSION}
     depends_on:
       apigateway:
         condition: service_healthy
     environment:
       - ELASTICSEARCH_URL=http://core-elasticsearch:9200
       - ELASTICSEARCH_HOSTS=http://core-elasticsearch:9200
-      - KIBANA_EXTERNAL_HOSTNAME=${WMUI_LAB10_APIGW_KIBANA_BASE_URL}
-      - ELASTICSEARCH_USERNAME=${WMUI_LAB10_ELASTIC_USERNAME}
-      - ELASTICSEARCH_PASSWORD=${WMUI_LAB10_ELASTIC_PASSWORD}
+      - KIBANA_EXTERNAL_HOSTNAME=${WMUI_LAB01_APIGW_KIBANA_BASE_URL}
+      - ELASTICSEARCH_USERNAME=${WMUI_LAB01_ELASTIC_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${WMUI_LAB01_ELASTIC_PASSWORD}
       - SERVER_BASEPATH=/apigatewayui/dashboardproxy
       - CONSOLE_ENABLED=false
     ports:
-      - ${WMUI_LAB10_PORT_PREFIX}56:5601
+      - ${WMUI_LAB01_PORT_PREFIX}56:5601
     networks:
       - n1
     healthcheck:

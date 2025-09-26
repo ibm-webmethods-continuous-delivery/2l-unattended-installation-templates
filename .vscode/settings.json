@@ -23,6 +23,7 @@
     "Glassfish",
     "healthcheck",
     "Instana",
+    "javaagent",
     "JAXB",
     "jdbc",
     "jgss",
