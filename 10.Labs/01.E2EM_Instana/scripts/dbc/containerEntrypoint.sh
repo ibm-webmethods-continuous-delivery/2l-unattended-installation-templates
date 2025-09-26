@@ -6,20 +6,20 @@ WM_HOME=${WM_HOME:-/opt/webmethods/1101/dbc}
 
 createDbAssets(){
 
-    local logPfx="WMUI_LAB10::createDbAssets()"
+    local logPfx="WMUI_LAB01::createDbAssets()"
 
-    if ! nc -z "${WMUI_LAB10_DBSERVER_HOSTNAME}" "${WMUI_LAB10_DBSERVER_PORT}"; then
-        echo "$logPfx - Cannot reach socket ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT}, database initialization failed!"
+    if ! nc -z "${WMUI_LAB01_DBSERVER_HOSTNAME}" "${WMUI_LAB01_DBSERVER_PORT}"; then
+        echo "$logPfx - Cannot reach socket ${WMUI_LAB01_DBSERVER_HOSTNAME}:${WMUI_LAB01_DBSERVER_PORT}, database initialization failed!"
         return 1
     fi
 
-    local lDBC_DB_URL="jdbc:wm:postgresql://${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT};databaseName=${WMUI_LAB10_DBSERVER_DATABASE_NAME}"
+    local lDBC_DB_URL="jdbc:wm:postgresql://${WMUI_LAB01_DBSERVER_HOSTNAME}:${WMUI_LAB01_DBSERVER_PORT};databaseName=${WMUI_LAB01_DBSERVER_DATABASE_NAME}"
     local lDbcSh="${WM_HOME}/common/db/bin/dbConfigurator.sh"
 
     local lCmdCatalog="${lDbcSh} --action catalog"
     local lCmdCatalog="${lCmdCatalog} --dbms pgsql"
-    local lCmdCatalog="${lCmdCatalog} --user '${WMUI_LAB10_DBSERVER_USER_NAME}'"
-    local lCmdCatalog="${lCmdCatalog} --password '${WMUI_LAB10_DBSERVER_PASSWORD}'"
+    local lCmdCatalog="${lCmdCatalog} --user '${WMUI_LAB01_DBSERVER_USER_NAME}'"
+    local lCmdCatalog="${lCmdCatalog} --password '${WMUI_LAB01_DBSERVER_PASSWORD}'"
     local lCmdCatalog="${lCmdCatalog} --url '${lDBC_DB_URL}'"
 
     echo "$logPfx - Checking if product database exists"
@@ -34,15 +34,15 @@ createDbAssets(){
     # for now this test counts as connectivity.
     # As per product's properties, we consider the "create" action as idempotent
 
-    echo "$logPfx - Initializing database ${WMUI_LAB10_DBSERVER_DATABASE_NAME} on server ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT} ..."
+    echo "$logPfx - Initializing database ${WMUI_LAB01_DBSERVER_DATABASE_NAME} on server ${WMUI_LAB01_DBSERVER_HOSTNAME}:${WMUI_LAB01_DBSERVER_PORT} ..."
 
     local lDbInitCmd="${lDbcSh} --action create"
     local lDbInitCmd="${lDbInitCmd} --dbms pgsql"
-    local lDbInitCmd="${lDbInitCmd} --component ${WMUI_LAB10_DBC_COMPONENT_NAME}"
-    local lDbInitCmd="${lDbInitCmd} --version ${WMUI_LAB10_DBC_COMPONENT_VERSION}"
+    local lDbInitCmd="${lDbInitCmd} --component ${WMUI_LAB01_DBC_COMPONENT_NAME}"
+    local lDbInitCmd="${lDbInitCmd} --version ${WMUI_LAB01_DBC_COMPONENT_VERSION}"
     local lDbInitCmd="${lDbInitCmd} --url '${lDBC_DB_URL}'"
-    local lDbInitCmd="${lDbInitCmd} --user '${WMUI_LAB10_DBSERVER_USER_NAME}'"
-    local lDbInitCmd="${lDbInitCmd} --password '${WMUI_LAB10_DBSERVER_PASSWORD}'"
+    local lDbInitCmd="${lDbInitCmd} --user '${WMUI_LAB01_DBSERVER_USER_NAME}'"
+    local lDbInitCmd="${lDbInitCmd} --password '${WMUI_LAB01_DBSERVER_PASSWORD}'"
     local lDbInitCmd="${lDbInitCmd} --printActions"
 
     eval "${lDbInitCmd}"
@@ -56,4 +56,4 @@ createDbAssets(){
 }
 createDbAssets
 
-echo "Go to http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80 and check the database content!. Look at the .env file for details!"
+echo "Go to http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}80 and check the database content!. Look at the .env file for details!"

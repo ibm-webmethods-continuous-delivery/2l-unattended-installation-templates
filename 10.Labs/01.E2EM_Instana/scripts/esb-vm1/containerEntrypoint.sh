@@ -83,8 +83,8 @@ setupMSR() {
     logI "[${lLOG_PREFIX}:setupMSR()] - MSR is not present, setting up..."
     
     # Wait for database to be available
-    logI "[${lLOG_PREFIX}:setupMSR()] - Waiting for database to be available -> ${WMUI_LAB10_DBSERVER_HOSTNAME}:${WMUI_LAB10_DBSERVER_PORT}..."
-    while ! portIsReachable2 "${WMUI_LAB10_DBSERVER_HOSTNAME}" "${WMUI_LAB10_DBSERVER_PORT}"; do
+    logI "[${lLOG_PREFIX}:setupMSR()] - Waiting for database to be available -> ${WMUI_LAB01_DBSERVER_HOSTNAME}:${WMUI_LAB01_DBSERVER_PORT}..."
+    while ! portIsReachable2 "${WMUI_LAB01_DBSERVER_HOSTNAME}" "${WMUI_LAB01_DBSERVER_PORT}"; do
         logI "[${lLOG_PREFIX}:setupMSR()] - Waiting for the database to come up, sleeping 5..."
         sleep 5
         # TODO: add a maximum retry number
@@ -110,9 +110,11 @@ setupMSR() {
       "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/"
 
     {
-      echo "JAVA_UHA_OPTS=\"-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar\""
-      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}\""
-      echo "JAVA_CUSTOM_OPTS=\"${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml\""
+      echo 'JAVA_UHA_OPTS="-javaagent:../E2EMonitoring/agent/uha-apm-agent.jar=logging.dir=./logs/ -Xbootclasspath/a:../E2EMonitoring/agent/uha-apm-agent.jar"'
+      # shellcheck disable=SC2016
+      echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} ${JAVA_UHA_OPTS}"'
+      # shellcheck disable=SC2016
+      echo 'JAVA_CUSTOM_OPTS="${JAVA_CUSTOM_OPTS} -Dlogback.configurationFile=./e2ecustomlogback.xml"'
     } >> "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/bin/setenv.sh"
 
   else
@@ -154,14 +156,14 @@ showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Lab 10 - E2E Monitoring with Instana"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - MSR Admin UI: http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}55"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB10_HOST_NAME}:${WMUI_LAB10_PORT_PREFIX}80"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - MSR Admin UI: http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}55"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database Admin (Adminer): http://${WMUI_LAB01_HOST_NAME}:${WMUI_LAB01_PORT_PREFIX}80"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Database connection details:"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_DBSERVER_HOSTNAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_DBSERVER_DATABASE_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_DBSERVER_USER_NAME}"
-  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_DBSERVER_PASSWORD}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Host: ${WMUI_LAB01_DBSERVER_HOSTNAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Database: ${WMUI_LAB01_DBSERVER_DATABASE_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - User: ${WMUI_LAB01_DBSERVER_USER_NAME}"
+  logI "[${lLOG_PREFIX}:showAccessInfo()] - Password: ${WMUI_LAB01_DBSERVER_PASSWORD}"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Issue 'docker-compose down -t 80' to close this project!"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
