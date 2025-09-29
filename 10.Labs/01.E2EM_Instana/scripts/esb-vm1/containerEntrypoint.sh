@@ -173,7 +173,7 @@ showAccessInfo() {
 refreshPubSubMonPackages(){
   if [ "${WMUI_LAB01_ESB_COPY_PUB_SUB_MON_PACKAGES}" = "true" ]; then
     logI "Refreshing packages from the publish subscribe with monitoring service development template..."
-    local __src_packages_home="${WMUI_LAB01_PUB_SUB_MON_01_REPO_MOUNT_POINT}/01.code/is-packages}"
+    local __src_packages_home="${WMUI_LAB01_PUB_SUB_MON_01_REPO_MOUNT_POINT}/01.code/is-packages"
     if [ ! -d "${__src_packages_home}" ]; then
       logE "Folder does not exist: ${__src_packages_home}!"
       logE "Is the repository 5s-pub-sub-with-mon-01 correctly mounted?"
@@ -187,11 +187,11 @@ refreshPubSubMonPackages(){
       "{__packages_home}/ServiceMockup" \
       "{__packages_home}/SubscriberExample"
 
-    cp -r "${__src_packages_home}"/Canonicals "{__packages_home}"/
-    cp -r "${__src_packages_home}"/CommonUtils "{__packages_home}"/
-    cp -r "${__src_packages_home}"/PublisherExample "{__packages_home}"/
-    cp -r "${__src_packages_home}"/ServiceMockup "{__packages_home}"/
-    cp -r "${__src_packages_home}"/SubscriberExample "{__packages_home}"/
+    cp -r "${__src_packages_home}"/Canonicals "${__packages_home}"/
+    cp -r "${__src_packages_home}"/CommonUtils "${__packages_home}"/
+    cp -r "${__src_packages_home}"/PublisherExample "${__packages_home}"/
+    cp -r "${__src_packages_home}"/ServiceMockup "${__packages_home}"/
+    cp -r "${__src_packages_home}"/SubscriberExample "${__packages_home}"/
   fi
 }
 
