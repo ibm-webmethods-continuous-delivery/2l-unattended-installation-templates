@@ -123,6 +123,7 @@ setupMSR() {
 }
 
 startMSR() {
+  refreshPubSubMonPackages
   logI "[${lLOG_PREFIX}:startMSR()] - Starting MSR..."
   
   # Start Integration Server / MSR
@@ -167,6 +168,31 @@ showAccessInfo() {
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
   logI "[${lLOG_PREFIX}:showAccessInfo()] - Issue 'docker-compose down -t 80' to close this project!"
   logI "[${lLOG_PREFIX}:showAccessInfo()] - ==================================================="
+}
+
+refreshPubSubMonPackages(){
+  if [ "${WMUI_LAB01_ESB_COPY_PUB_SUB_MON_PACKAGES}" = "true" ]; then
+    logI "Refreshing packages from the publish subscribe with monitoring service development template..."
+    local __src_packages_home="${WMUI_LAB01_PUB_SUB_MON_01_REPO_MOUNT_POINT}/01.code/is-packages}"
+    if [ ! -d "${__src_packages_home}" ]; then
+      logE "Folder does not exist: ${__src_packages_home}!"
+      logE "Is the repository 5s-pub-sub-with-mon-01 correctly mounted?"
+      return 1
+    fi
+    local __packages_home="${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/packages"
+    rm -rf \
+      "{__packages_home}/Canonicals" \
+      "{__packages_home}/CommonUtils" \
+      "{__packages_home}/PublisherExample" \
+      "{__packages_home}/ServiceMockup" \
+      "{__packages_home}/SubscriberExample"
+
+    cp -r "${__src_packages_home}"/Canonicals "{__packages_home}"/
+    cp -r "${__src_packages_home}"/CommonUtils "{__packages_home}"/
+    cp -r "${__src_packages_home}"/PublisherExample "{__packages_home}"/
+    cp -r "${__src_packages_home}"/ServiceMockup "{__packages_home}"/
+    cp -r "${__src_packages_home}"/SubscriberExample "{__packages_home}"/
+  fi
 }
 
 # Main execution flow
