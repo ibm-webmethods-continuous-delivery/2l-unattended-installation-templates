@@ -117,7 +117,7 @@ setupAPIGateway() {
         "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
       cp \
         "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/plugins/uha-api-onpremise-plugin.jar" \
-        "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/lib/jars/"
+        "${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/packages/WmAPIGateway/code/jars/"
 
       cp \
         "${WMUI_INSTALL_INSTALL_DIR}/E2EMonitoring/agent/config/e2ecustomlogback.xml" \
