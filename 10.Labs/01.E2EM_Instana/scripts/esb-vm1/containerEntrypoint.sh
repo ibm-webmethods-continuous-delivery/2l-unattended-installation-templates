@@ -172,11 +172,11 @@ showAccessInfo() {
 
 refreshPubSubMonPackages(){
   if [ "${WMUI_LAB01_ESB_COPY_PUB_SUB_MON_PACKAGES}" = "true" ]; then
-    logI "Refreshing packages from the publish subscribe with monitoring service development template..."
+    logI "[${lLOG_PREFIX}:refreshPubSubMonPackages()] - Refreshing packages from the publish subscribe with monitoring service development template..."
     local __src_packages_home="${WMUI_LAB01_PUB_SUB_MON_01_REPO_MOUNT_POINT}/01.code/is-packages"
     if [ ! -d "${__src_packages_home}" ]; then
-      logE "Folder does not exist: ${__src_packages_home}!"
-      logE "Is the repository 5s-pub-sub-with-mon-01 correctly mounted?"
+      logE "[${lLOG_PREFIX}:refreshPubSubMonPackages()] - Folder does not exist: ${__src_packages_home}!"
+      logE "[${lLOG_PREFIX}:refreshPubSubMonPackages()] - Is the repository 5s-pub-sub-with-mon-01 correctly mounted?"
       return 1
     fi
     local __packages_home="${WMUI_INSTALL_INSTALL_DIR}/IntegrationServer/packages"
