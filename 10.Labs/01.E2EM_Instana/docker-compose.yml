@@ -11,6 +11,7 @@ volumes:
   apigw-vm1-wm-home: {}
   apigw-vm1-upd-mgr-home: {}
   esdata: {}
+  otel-traces: {}
 networks:
     n1:
       external: false
@@ -40,6 +41,8 @@ services:
       start_period: 80s
   adminer:
     image: adminer
+    container_name: lab01-adminer
+    hostname: lab01-adminer
     networks:
       - n1
     ports:
@@ -49,6 +52,8 @@ services:
         condition: service_healthy
   um:
     image: ${WMUI_LAB01_UM_IMAGE}
+    container_name: lab01-um
+    hostname: lab01-um
     environment:
       - REALM_NAME=${WMUI_LAB01_UM_REALM_NAME}
       - INIT_JAVA_MEM_SIZE=256M
@@ -64,7 +69,7 @@ services:
     mem_limit: 1g
     networks:
       - n1
-  esb-vm:
+  esb:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
@@ -73,8 +78,8 @@ services:
         - __upd_mgr_home_dir=${WMUI_LAB01_ESB_UPD_MGR_HOME_MOUNT_POINT}
         - __user_home=${WMUI_LAB01_ESB_USER_HOME_MOUNT_POINT}
     image: lab01-esb-vm-1
-    container_name: lab01-esb-vm-1
-    hostname: lab01-esb-vm-1
+    container_name: lab01-esb-vm
+    hostname: lab01-esb-vm
     ulimits:
       nproc: 4096
       nofile: 65536
@@ -146,6 +151,8 @@ services:
     depends_on:
       um:
         condition: service_healthy
+      otelc:
+        condition: service_started
     healthcheck:
       interval: 10s
       retries: 200
@@ -160,8 +167,8 @@ services:
         - __upd_mgr_home_dir=${WMUI_LAB01_APIGW_UPD_MGR_HOME_MOUNT_POINT}
         - __user_home=${WMUI_LAB01_APIGW_USER_HOME_MOUNT_POINT}
     image: lab01-api-gw-vm-1
-    container_name: lab01-api-gw-vm-1
-    hostname: lab01-api-gw-vm-1
+    container_name: lab01-api-gw-vm
+    hostname: lab01-api-gw-vm
     ulimits:
       nproc: 4096
       nofile: 65536
@@ -240,8 +247,10 @@ services:
         condition: service_healthy
       core-elasticsearch:
         condition: service_healthy
-      esb-vm:
+      esb:
         condition: service_healthy
+      otelc:
+        condition: service_started
     entrypoint: ${WMUI_LAB01_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
     healthcheck:
       interval: 10s
@@ -251,6 +260,8 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_LAB01_ELK_VERSION}
     volumes:
       - esdata:/usr/share/elasticsearch/data
+    container_name: lab01-es
+    hostname: lab01-es  
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -278,6 +289,8 @@ services:
     image: cars10/elasticvue
     ports:
       - "${WMUI_LAB01_PORT_PREFIX}81:8080"
+    container_name: lab01-e-vue
+    hostname: lab01-e-vue 
     networks:
       - n1
     depends_on:
@@ -291,6 +304,8 @@ services:
     depends_on:
       apigateway:
         condition: service_healthy
+    container_name: lab01-kib
+    hostname: lab01-kib
     environment:
       - ELASTICSEARCH_URL=http://core-elasticsearch:9200
       - ELASTICSEARCH_HOSTS=http://core-elasticsearch:9200
@@ -310,3 +325,12 @@ services:
     mem_reservation: 200m
     mem_limit: 1g
     #cpus: 1
+  otelc:
+    image: otel/opentelemetry-collector
+    container_name: lab01-otelc
+    hostname: lab01-otelc
+    volumes:
+      - ./config/otelc/config.yaml:/etc/otelcol/config.yaml
+      - ./local/traces.json:/tmp/traces.json:rw
+    networks:
+      - n1
