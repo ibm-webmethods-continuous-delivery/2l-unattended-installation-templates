@@ -1,4 +1,4 @@
-SET INSTALLER_BIN=
-SET SUM_BOOTSTRAP_BIN=
-SET PRODUCTS_ZIP=
-SET FIXES_ZIP=
+SET INSTALLER_BIN=..\..\..\..\local\artifacts\default-installer.bin
+SET SUM_BOOTSTRAP_BIN=..\..\..\..\local\artifacts\default-upd-mgr-bootstrap.bin
+SET PRODUCTS_ZIP=..\..\..\..\local\artifacts\products\...
+SET FIXES_ZIP=..\..\..\..\local\artifacts\fixes\...
