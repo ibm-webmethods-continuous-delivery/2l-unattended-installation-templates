@@ -18,7 +18,7 @@ Collection of scripts to be "curled" during unattended cloud installations for I
 **Important**: All files MUST have unix style end lines even when using docker desktop for Windows. Before cloning, ensure that the clone command will preserve the unix end lines even if you ar cloning from Windows:
 
 ```bat
-git config --global core.autocrlf true
+git config --global core.autocrlf input
 ```
 
 After cloning, depending on the the user situation and inbound file properties, the files might not have the desired properties.
