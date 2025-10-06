@@ -4,28 +4,51 @@ This laboratory demonstrates end-to-end monitoring capabilities using webMethods
 
 ## Prerequisites
 
-### 1. Access to webMethods Containers
+### 1. System Requirements
+- Docker Engine with compose support
+- Minimum 8GB RAM available for containers
+- Sufficient disk space for container volumes and logs
+- Network connectivity for container registry access
+
+### 2. Access to webMethods Containers
 - Access to [webMethods containers](https://containers.webmethods.io) is required
 - This is not a public registry - you must have appropriate entitlements
 - Contact your Software AG representative for access if needed
 
-### 2. External Repository Dependency
+## 3. Attention points
+
+- The clones MUST ensure unix style end lines.
+- Most likely you need to set execution flags and permissions immediately after clone. 
+
+### 4. External Repository Dependency
 - Clone the repository: `https://github.com/ibm-webmethods-continuous-delivery/5s-pub-sub-with-mon-01`
 - Build the sources following the README instructions in that repository
-- By default, this lab expects the repository to be located at: `../../../5s-pub-sub-with-mon-01` (relative to this lab directory)
+- By default, this lab expects the repository to be located at: `../../../5s-pub-sub-with-mon-01` (relative to this lab directory). If the path is different, declare the correct on in the `.env` file.
 
-### 3. Required Artifacts
+### 5. Required Artifacts
 Ensure the following artifacts are available in your `${H_WMUI_HOME}/local/artifacts/` directory:
 - `default-installer.bin` - webMethods installer
 - `default-upd-mgr-bootstrap.bin` - Update Manager bootstrap
 - MSR fixes and products zip files (version 1101)
 - API Gateway fixes and products zip files (version 1101)
 
-### 4. System Requirements
-- Docker Engine with compose support
-- Minimum 8GB RAM available for containers
-- Sufficient disk space for container volumes and logs
-- Network connectivity for container registry access
+Note that the first two binary artifact may be obtained by running one of the tests in the folder `03.test/framework/assureBinaries`. Ensure you have accepted IBMs webMethods terms and conditions first, by downloading these at manually least once from fix central:
+
+- [Installer](https://www.ibm.com/support/fixcentral/options?selectionBean.selectedTab=find&selection=ibm%2fOther+software%3bWebMethods%3bibm%2fOther+software%2fIBM+webMethods+Integration+Server)
+- [Update Manager](https://www.ibm.com/support/fixcentral/options?selectionBean.selectedTab=find&selection=ibm%2fOther+software%3bWebMethods%3bibm%2fOther+software%2fIBM+webMethods+Microservices+Runtime)
+
+The other files, products and fixes zip images, may be obtained by running the test harness `03.test/framework/BuildZipImages`, considering the templates used in this lab: `DBC/1101/full`, `MSR/1101/selection-20250924` and `APIGateway/1101/cds-e2e-postgres`.
+
+Once the artifacts are downloaded, adapt the paths in the `.env` file, for example the `fixes.zip` paths contain the download date.
+
+Follow the README files in those folders for details.
+
+## 6. Database Initialization
+
+This laboratory uses Postgres as the product database for central user management and monitoring. Before launching the lab, the database must be initialized with the tool "database configurator".
+
+The unattended installation templates uses the template `DBC/1101/full` for this purpose. Also, a convenient container image can be built using the harness `06.container-image-builders-test/DBC/1101/local-build-1`. 
+
 
 ## Architecture Overview
 

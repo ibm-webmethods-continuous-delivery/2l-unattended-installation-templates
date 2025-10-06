@@ -9,14 +9,27 @@
       - [02.templates.02.post-setup](#02templates02post-setup)
     - [03.test](#03test)
     - [09.utils](#09utils)
-  - [Important notes](#important-notes)
   - [Acknowledgements](#acknowledgements)
 
 Collection of scripts to be "curled" during unattended cloud installations for IBM webMethods products.
 
 ## Quick Start
 
-After cloning, the user may immediately obtain the installation and patching binary files by using the test harness `03.test\framework\assureBinaries\alpine`.
+**Important**: All files MUST have unix style end lines even when using docker desktop for Windows. Before cloning, ensure that the clone command will preserve the unix end lines even if you ar cloning from Windows:
+
+```bat
+git config --global core.autocrlf true
+```
+
+After cloning, depending on the the user situation and inbound file properties, the files might not have the desired properties.
+
+In order to set properties, for example the executable flag on .sh files, look at the utility `09.utils/alpine-set-executable-4-sh`.
+
+For a more specific example, where `jcode.sh` Integration Server compiling tool must have access to package folders, see the instructions [here](https://github.com/ibm-webmethods-continuous-delivery/5s-pub-sub-with-mon-01/blob/main/02.build/README.md#procedures) and eventually adapt for your specific situation.
+
+Then, the user may immediately obtain the installation and patching binary files by using one of the test harnesses in `03.test\framework\assureBinaries`, for example  `03.test\framework\assureBinaries\alpine`.
+
+According to the user purpose, the next step is about downloading the product binaries. Use tha harnesses in folder `03.test/framework/BuildZipImages` to download the necessary images, according to the templates of interest. 
 
 ## Folders
 
@@ -71,10 +84,6 @@ Each test harness typically contains:
 ### 09.utils
 
 Utilities supporting the considered use cases, e.g. a kernel properties setter for Elasticsearch.
-
-## Important notes
-
-- All files must have unix style end lines even when using docker desktop for Windows. Clone accordingly!
 
 ## Acknowledgements
 
