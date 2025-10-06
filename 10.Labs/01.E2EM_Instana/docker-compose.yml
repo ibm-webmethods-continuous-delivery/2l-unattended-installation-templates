@@ -326,11 +326,11 @@ services:
     mem_limit: 1g
     #cpus: 1
   otelc:
-    image: otel/opentelemetry-collector
+    image: otel/opentelemetry-collector-contrib:0.136.0
     container_name: lab01-otelc
     hostname: lab01-otelc
     volumes:
-      - ./config/otelc/config.yaml:/etc/otelcol/config.yaml
+      - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
       - ./local/traces.json:/tmp/traces.json:rw
     networks:
       - n1
