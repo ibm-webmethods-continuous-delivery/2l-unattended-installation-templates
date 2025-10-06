@@ -331,6 +331,6 @@ services:
     hostname: lab01-otelc
     volumes:
       - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
-      - ./local/traces.json:/tmp/traces.json:rw
+      - ./local/otel/traces.json:/tmp/traces.json
     networks:
       - n1
