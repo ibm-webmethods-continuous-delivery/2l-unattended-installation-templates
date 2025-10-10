@@ -330,12 +330,12 @@ services:
     pid: host
     volumes:
       - /run/user/1000/:/var/run
-      - /home/webmethods/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
+      - ./configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
       - /dev:/dev:ro
       - /sys:/sys:ro
       - /var/log:/var/log:ro
     environment:
-      - INSTANA_AGENT_ENDPOINT=ingress.instana.apps.ocp.linuxone.roma-port.it.ibm.com
-      - INSTANA_AGENT_ENDPOINT_PORT=443
-      - INSTANA_AGENT_KEY=xxxxxxxxxxx
-      - INSTANA_DOWNLOAD_KEY=xxxxxxxxxxx
+      - INSTANA_AGENT_ENDPOINT=${INSTANA_AGENT_ENDPOINT}
+      - INSTANA_AGENT_ENDPOINT_PORT=${INSTANA_AGENT_ENDPOINT_PORT}
+      - INSTANA_AGENT_KEY=${INSTANA_AGENT_KEY}
+      - INSTANA_DOWNLOAD_KEY=${INSTANA_DOWNLOAD_KEY}
