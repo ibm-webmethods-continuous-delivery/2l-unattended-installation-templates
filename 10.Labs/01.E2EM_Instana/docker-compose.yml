@@ -329,7 +329,7 @@ services:
     pid: host
     volumes:
       - /run/user/1000/:/var/run
-      - ./configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
+      - ./config/instana-agent/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
       - /dev:/dev:ro
       - /sys:/sys:ro
       - /var/log:/var/log:ro
