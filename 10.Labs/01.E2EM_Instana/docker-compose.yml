@@ -324,7 +324,6 @@ services:
   instana-agent:
     image: icr.io/instana/agent
     container_name: instana-agent
-    privileged: true
     networks:
       - n1
     pid: host
