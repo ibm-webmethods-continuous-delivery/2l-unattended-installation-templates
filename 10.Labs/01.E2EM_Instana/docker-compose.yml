@@ -328,7 +328,7 @@ services:
       - n1
     pid: host
     volumes:
-      - /run/user/1000/:/var/run
+      # - /run/user/1000/:/var/run
       - ./config/instana-agent/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
       - /dev:/dev:ro
       - /sys:/sys:ro
