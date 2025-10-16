@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  instana-agent:
+    image: icr.io/instana/agent
+    container_name: instana-agent
+    privileged: true
+    networks:
+      - instana_n1
+    pid: host
+    detach: true
+    volumes:
+      - /run/user/1000/:/var/run
+      - /home/webmethods/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
+      - /dev:/dev:ro
+      - /sys:/sys:ro
+      - /var/log:/var/log:ro
+    environment:
+      - INSTANA_AGENT_ENDPOINT=ingress.instana.apps.ocp.linuxone.roma-port.it.ibm.com
+      - INSTANA_AGENT_ENDPOINT_PORT=443
+      - INSTANA_AGENT_KEY=xxxxxxxxxxxxxxxxx
+      - INSTANA_DOWNLOAD_KEY=xxxxxxxxxxxxxxxxx
+
+networks:
+  n1:
+    external: true

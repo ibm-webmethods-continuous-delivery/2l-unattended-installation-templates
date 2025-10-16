@@ -334,3 +334,5 @@ services:
       - ./local/otel/traces.json:/tmp/traces.json
     networks:
       - n1
+    environment:
+      - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/json

@@ -9,11 +9,13 @@ exporters:
     verbosity: detailed
   file:
     path: /tmp/traces.json
+  otlphttp:
+    endpoint: http://instana-agent:4318
 service:
   pipelines:
     traces:
       receivers: [ otlp ]
-      exporters: [ debug, file ]
+      exporters: [ debug, file, otlphttp ]
     metrics:
       receivers: [ otlp ]
       exporters: [ debug, file ]
