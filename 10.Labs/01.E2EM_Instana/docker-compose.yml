@@ -322,19 +322,37 @@ services:
     mem_limit: 1g
     #cpus: 1
   instana-agent:
+    profiles:
+      - agent
     image: icr.io/instana/agent
     container_name: instana-agent
-    networks:
-      - n1
-    pid: host
+    hostname: otelhost
+
     volumes:
       # - /run/user/1000/:/var/run
       - ./config/instana-agent/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
       - /dev:/dev:ro
       - /sys:/sys:ro
       - /var/log:/var/log:ro
+    networks:
+      - n1
+    pid: host      
     environment:
       - INSTANA_AGENT_ENDPOINT=${INSTANA_AGENT_ENDPOINT}
       - INSTANA_AGENT_ENDPOINT_PORT=${INSTANA_AGENT_ENDPOINT_PORT}
       - INSTANA_AGENT_KEY=${INSTANA_AGENT_KEY}
       - INSTANA_DOWNLOAD_KEY=${INSTANA_DOWNLOAD_KEY}
+  otelc:
+    profiles:
+      - collector
+    image: otel/opentelemetry-collector-contrib:0.136.0
+    container_name: otelc
+    hostname: otelhost
+    volumes:
+      - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
+      - /tmp/traces.json
+    networks:
+      - n1
+    environment:
+      - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/json
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
