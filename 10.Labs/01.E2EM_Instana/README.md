@@ -115,7 +115,7 @@ This step creates the required database schemas for both MSR and API Gateway.
 
 ### 3. Start Application Stack
 ```bash
-docker compose up -d
+docker compose [--profile collector/agent] up -d
 ```
 
 ### 4. Verify Deployment
@@ -223,14 +223,16 @@ docker compose logs core-elasticsearch
 To stop and remove all containers and volumes:
 ```bash
 # Stop services
-docker compose down
+docker compose [--profile collector/agent] down
 
 # Remove volumes (WARNING: This deletes all data)
-docker compose down -v
+docker compose [--profile collector/agent] down -v
 
 # Remove images
-docker compose down --rmi all
+docker compose [--profile collector/agent] down --rmi all
 ```
+
+⚠️ You can choose to enable the otel collector or the instana agent or neither by using the --profile parameter
 
 ## Support and Documentation
 

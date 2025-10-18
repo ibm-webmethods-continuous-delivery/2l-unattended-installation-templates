@@ -11,10 +11,10 @@ volumes:
   apigw-vm1-wm-home: {}
   apigw-vm1-upd-mgr-home: {}
   esdata: {}
-  otel-traces: {}
 networks:
-    n1:
-      external: false
+  n1:
+    external:
+      false
 services:
   db:
     image: ${WMUI_LAB01_POSTGRESQL_IMAGE}
@@ -30,7 +30,7 @@ services:
     # comment out ports, supposed to be used internally only
     #ports:
     #  - "${WMUI_LAB01_PORT_PREFIX}32:5432"
-    volumes: 
+    volumes:
       - db-data:/var/lib/postgresql/data
     command: -p ${WMUI_LAB01_DBSERVER_PORT}
     healthcheck:
@@ -147,12 +147,10 @@ services:
       - "${WMUI_LAB01_PORT_PREFIX}53:5543"
       - "${WMUI_LAB01_PORT_PREFIX}55:5555"
     networks:
-      - n1    
+      - n1
     depends_on:
       um:
         condition: service_healthy
-      otelc:
-        condition: service_started
     healthcheck:
       interval: 10s
       retries: 200
@@ -249,8 +247,6 @@ services:
         condition: service_healthy
       esb:
         condition: service_healthy
-      otelc:
-        condition: service_started
     entrypoint: ${WMUI_LAB01_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
     healthcheck:
       interval: 10s
@@ -261,7 +257,7 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
     container_name: lab01-es
-    hostname: lab01-es  
+    hostname: lab01-es
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -290,7 +286,7 @@ services:
     ports:
       - "${WMUI_LAB01_PORT_PREFIX}81:8080"
     container_name: lab01-e-vue
-    hostname: lab01-e-vue 
+    hostname: lab01-e-vue
     networks:
       - n1
     depends_on:
@@ -325,12 +321,38 @@ services:
     mem_reservation: 200m
     mem_limit: 1g
     #cpus: 1
-  otelc:
-    image: otel/opentelemetry-collector-contrib:0.136.0
-    container_name: lab01-otelc
-    hostname: lab01-otelc
+  instana-agent:
+    profiles:
+      - agent
+    image: icr.io/instana/agent
+    container_name: instana-agent
+    hostname: otelhost
+
     volumes:
-      - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
-      - ./local/otel/traces.json:/tmp/traces.json
+      # - /run/user/1000/:/var/run
+      - ./config/instana-agent/configuration-custom.yaml:/opt/instana/agent/etc/instana/configuration-custom.yaml
+      - /dev:/dev:ro
+      - /sys:/sys:ro
+      - /var/log:/var/log:ro
     networks:
       - n1
+    pid: host      
+    environment:
+      - INSTANA_AGENT_ENDPOINT=${INSTANA_AGENT_ENDPOINT}
+      - INSTANA_AGENT_ENDPOINT_PORT=${INSTANA_AGENT_ENDPOINT_PORT}
+      - INSTANA_AGENT_KEY=${INSTANA_AGENT_KEY}
+      - INSTANA_DOWNLOAD_KEY=${INSTANA_DOWNLOAD_KEY}
+  otelc:
+    profiles:
+      - collector
+    image: otel/opentelemetry-collector-contrib:0.136.0
+    container_name: otelc
+    hostname: otelhost
+    volumes:
+      - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
+      - /tmp/traces.json
+    networks:
+      - n1
+    environment:
+      - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/json
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
