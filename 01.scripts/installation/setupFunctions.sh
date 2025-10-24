@@ -587,8 +587,8 @@ assureDownloadableFile() {
 # Parameters
 # $1 - OPTIONAL installer binary location, defaulted to ${WMUI_INSTALL_INSTALLER_BIN}, which is also defaulted to /tmp/installer.bin
 assureDefaultInstaller() {
-  local installerUrl="https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/0/IBM_webMethods_Install_Linux_x64.bin"
-  local installerSha256Sum="46f725e9f0668945912944b0c3d562d9a39274942b530b72b1b08494a1044099"
+  local installerUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/1/IBM_webMethods_Install_Linux_x64.bin"
+  local installerSha256Sum="423b2325b50ef437c4815b38c198662e3c2ec41cbf6f6acfef82676dfe45ffc1"
   WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
   local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
   if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
