@@ -9,7 +9,7 @@
 # our WMUI related parameters
 
 assureVariables(){
-  WMUI_INSTALL_INSTALLER_BIN="${TEST_OUTPUT_FOLDER}/installer.bin"
+  WMUI_INSTALL_INSTALLER_BIN="${TEST_OUTPUT_FOLDER}/default-installer.bin"
   export WMUI_INSTALL_INSTALLER_BIN
 
   WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${TEST_OUTPUT_FOLDER}/upd-mgr-bootstrap.bin"

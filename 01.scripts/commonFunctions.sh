@@ -42,6 +42,8 @@ init() {
   if [ "${WMUI_ONLINE_MODE}" -eq 0 ]; then
     # in offline mode the caller MUST provide the home folder for WMUI in the env var WMUI_HOME
     if [ ! -f "${WMUI_HOME}/01.scripts/commonFunctions.sh" ]; then
+      echo "FATAL - ${WMUI_HOME}/01.scripts/commonFunctions.sh not found, but we are instructed to work in offline mode!"
+      echo "HINT  - Have you set the WMUI_HOME variable? (current value=${WMUI_HOME})"
       return 104
     else
       export WMUI_CACHE_HOME="${WMUI_HOME}" # we already have everything

@@ -587,8 +587,8 @@ assureDownloadableFile() {
 # Parameters
 # $1 - OPTIONAL installer binary location, defaulted to ${WMUI_INSTALL_INSTALLER_BIN}, which is also defaulted to /tmp/installer.bin
 assureDefaultInstaller() {
-  local installerUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/1/IBM_webMethods_Install_Linux_x64.bin"
-  local installerSha256Sum="423b2325b50ef437c4815b38c198662e3c2ec41cbf6f6acfef82676dfe45ffc1"
+  local installerUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin"
+  local installerSha256Sum="07ecdff4efe4036cb5ef6744e1a60b0a7e92befed1a00e83b5afe9cdfd6da8d3"
   WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
   local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
   if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
@@ -601,7 +601,7 @@ assureDefaultInstaller() {
 # Parameters
 # $1 - OPTIONAL UPD_MGR bootstrap binary location, defaulted to ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}, which is also defaulted to /tmp/upd-mgr-bootstrap.bin
 assureDefaultUpdMgrBootstrap() {
-  local updMgrBootstrapUrl="https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin"
+  local updMgrBootstrapUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin"
   local updMgrBootstrapSha256Sum="a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55"
   WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
   local lUpdMgrBootstrap="${1:-$WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
@@ -723,7 +723,7 @@ generateFixesImageFromTemplate() {
   lCmd="${lCmd} -imagePlatform ${lPlatformString}"
   lCmd="${lCmd} -createImage "'"'"${lFixesImageFile}"'"'
   lCmd="${lCmd} -empowerUser ${WMUI_EMPOWER_USER}"
-  echo "SUM command to execute: ${lCmd} -empowerPass ***"
+  logD "SUM command to execute: ${lCmd} -empowerPass ***"
   lCmd="${lCmd} -empowerPass '${WMUI_EMPOWER_PASSWORD}'"
 
   local crtDir
