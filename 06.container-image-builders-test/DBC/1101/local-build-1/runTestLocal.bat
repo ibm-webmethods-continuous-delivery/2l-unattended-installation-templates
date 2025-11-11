@@ -4,8 +4,8 @@ call .\setEnv.bat
 
 md build_context
 
-copy ..\..\..\..\05.container-image-builders\DBC\1101\full\alpine\Dockerfile build_context\
-copy ..\..\..\..\05.container-image-builders\DBC\1101\full\alpine\*.sh build_context\
+copy ..\..\..\..\05.container-image-builders\%INSTALL_TEMPLATE_win%\alpine\Dockerfile build_context\
+copy ..\..\..\..\05.container-image-builders\%INSTALL_TEMPLATE_win%\alpine\*.sh build_context\
 
 COPY "%INSTALLER_BIN%" build_context\installer.bin
 COPY "%SUM_BOOTSTRAP_BIN%" build_context\upd-mgr-bootstrap.bin
@@ -16,7 +16,7 @@ cd build_context
 
 dir
 
-docker build -t dbc-1101-full-alpine-test-1 .
+docker buildx build --build-arg __wm_install_template=%INSTALL_TEMPLATE% --build-arg __wmui_tag=%WMUI_TAG% -t %CONTAINER_IMAGE% .
 
 cd ..
 
