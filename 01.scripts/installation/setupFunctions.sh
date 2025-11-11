@@ -874,7 +874,7 @@ generateProductsImageFromTemplate() {
   ## TODO: deal with \ escaping in the password. For now avoid using '\' - backslash in the password string
 
   ## TODO: not space safe, but it shouldn't matter for now
-  local lCmd="${lInstallerBin} -readScript ${lVolatileScriptFile}"
+  local lCmd="${lInstallerBin} -console -readScript ${lVolatileScriptFile}"
   if [ "${lDebugOn}" -ne 0 ]; then
     lCmd="${lCmd} -debugFile '${lDebugLogFile}' -debugLvl verbose"
   fi
