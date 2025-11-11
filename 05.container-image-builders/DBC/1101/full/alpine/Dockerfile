@@ -6,6 +6,8 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest AS installer
 ARG __i_bin=/tmp/installer.bin
 ARG __u_bin=/tmp/upd-mgr-bootstrap.bin
 ARG __wm_install_home=/opt/webmethods/1101/dbc
+ARG __wm_install_template=DBC/1101/full
+ARG __wmui_tag=main
 
 RUN microdnf -y update ;\
     microdnf -y install \
@@ -39,7 +41,9 @@ ENV WMUI_SUM_HOME=/tmp/upd-mgr-v11 \
     WMUI_PATCH_AVAILABLE=1 \
     WMUI_PATCH_FIXES_IMAGE_FILE="/tmp/fixes.zip" \
     WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${__u_bin}" \
-    WMUI_SDC_ONLINE_MODE=0
+    WMUI_SDC_ONLINE_MODE=0 \
+    WMUI_TEMPLATE="${__wm_install_template}" \
+    WMUI_TAG="${__wmui_tag}"
 
 RUN cd /tmp/install; chmod u+x ./install.sh; ./install.sh
 
