@@ -4,3 +4,4 @@ imageFile=${WMUI_INSTALL_IMAGE_FILE}
 InstallDir=${WMUI_INSTALL_INSTALL_DIR}
 selectedFixes=
 ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
+adminPassword=manage
