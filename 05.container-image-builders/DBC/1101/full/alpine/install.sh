@@ -10,9 +10,9 @@ export WMUI_TEMPLATE="${WMUI_TEMPLATE:-DBC/1101/full}"
 
 echo "Cloning WMUI for tag ${WMUI_TAG}..."
 
-git clone -b "${WMUI_TAG}" --single-branch \
-  https://github.com/ibm-webmethods-continuous-delivery/2l-unattended-installation-templates.git \
-  "${WMUI_HOME}"
+git clone -b "${WMUI_TAG}" --single-branch --depth 1 \
+https://github.com/ibm-webmethods-continuous-delivery/2l-unattended-installation-templates.git \
+"${WMUI_HOME}"
 
 # shellcheck source=/dev/null
 . "${WMUI_HOME}/01.scripts/commonFunctions.sh"
