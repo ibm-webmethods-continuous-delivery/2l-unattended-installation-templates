@@ -28,7 +28,7 @@ ls /mnt/sag-licenses/Integration_Server.xml
 ```sh
 ${WMUI_INSTALL_INSTALLER_BIN} \
 -installDir ${WMUI_INSTALL_INSTALL_DIR} \
--writeScript /mnt/output/yourTemplateNameHere.wmscript
+-writeScript /${G_OUTPUT_MOUNTING_POINT}/yourTemplateNameHere.wmscript
 ```
 
 - After all choices are made and immediately before the actual installation, installer writes the script file. Watch for the destination, when the file is created exit the installer. This moment may also be identified with the wizard step where you can see 

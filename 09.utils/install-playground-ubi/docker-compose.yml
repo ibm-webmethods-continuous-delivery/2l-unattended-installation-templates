@@ -8,7 +8,7 @@ services:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
       args:
-        - __audit_home_dir=${WMUI_AUDIT_BASE_DIR}
+        - __audit_home_dir=${WMUI_AUDIT_HOME}
         - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
         - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
         - __user_home=${WMUI_USER_HOME}
@@ -17,29 +17,30 @@ services:
     hostname: install-playground-ubi-1-1
     volumes:
       # the following must match the Dockerfile folders, otherwise permissions on FS will not work
-      - ipg1-install-home:${WMUI_INSTALL_INSTALL_DIR}
-      - ipg1-user-home:${WMUI_USER_HOME}
-      - ipg1-upd-mgr-home:${WMUI_UPD_MGR_HOME}
-      - ipg1-audit-home:${WMUI_AUDIT_BASE_DIR}
-      - ./scripts/:/mnt/scripts/
-      - ${H_WMUI_HOME}:/mnt/WMUI_HOME
+      - ipg1-install-home:${WMUI_INSTALL_INSTALL_DIR}/
+      - ipg1-user-home:${WMUI_USER_HOME}/
+      - ipg1-upd-mgr-home:${WMUI_UPD_MGR_HOME}/
+      - ipg1-audit-home:${WMUI_AUDIT_HOME}/
+      - ./scripts/:${G_SCRIPTS_MOUNTING_POINT}/
+      - ${H_WMUI_HOME}/:${WMUI_HOME}/
       # These must be provided, they are prerequisites
-      - ${H_LICENSES_FOLDER}/:/mnt/sag-licenses/
+      - ${H_LICENSES_FOLDER}/:${G_LICENSES_MOUNTING_POINT}/
       - ${H_ARTIFACTS_FOLDER}/:${G_ARTIFACT_MOUNTING_POINT}/
-      - ${H_OUTPUT_FOLDER}:/mnt/output
+      - ${H_OUTPUT_FOLDER}/:${G_OUTPUT_MOUNTING_POINT}/
     environment:
       # WMUI Base variables
       # commonFunctions
       - WMUI_DEBUG_ON=1
       # this test runs online
       - WMUI_ONLINE_MODE=1
-      - WMUI_HOME=/mnt/WMUI_HOME
-      - WMUI_AUDIT_BASE_DIR
+      - WMUI_HOME
+      - WMUI_AUDIT_HOME
       # setupFunctions
       - WMUI_INSTALL_INSTALLER_ARTIFACT
       - WMUI_INSTALL_INSTALLER_BIN
       - WMUI_INSTALL_INSTALL_DIR
-      - WMUI_PATCH_SUM_BOOTSTRAP_BIN
+      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
       - WMUI_UPD_MGR_HOME
+      - G_OUTPUT_MOUNTING_POINT
       # even when not using SPM, installer / update manager are spinning it up nonetheless
-    entrypoint: /mnt/scripts/containerEntrypoint.sh
+    entrypoint: ${G_SCRIPTS_MOUNTING_POINT}/containerEntrypoint.sh
