@@ -1,5 +1,7 @@
 ARG __from_img=registry.access.redhat.com/ubi8/ubi-minimal:latest
 # ARG __from_img used below on the final stage
+
+# 1 stage: install product
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest AS installer
 
 # Temporary until buildah fix will be available: one argument for ARG
@@ -48,6 +50,7 @@ ENV WMUI_SUM_HOME=/tmp/upd-mgr-v11 \
 
 RUN cd /tmp/install; chmod u+x ./install.sh; ./install.sh
 
+# 2 stage: optimize JRE
 FROM alpine:latest AS jre-packager-and-picker
 
 ARG __wm_install_home=/opt/webmethods/products
@@ -64,6 +67,7 @@ RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
     --release-info="add:IMPLEMENTOR=IBM:IMPLEMENTOR_VERSION=IBM_JRE_DBC_17" \
     --output "${__wm_install_home}/jvm/jvm/jre"
 
+# 3 stage: wrap up all together in the final container image
 FROM ${__from_img}
 
 ARG __wm_install_home=/opt/webmethods/products
@@ -75,24 +79,35 @@ ARG __wm_user_name=webmethods
 ENV \
     JAVA_HOME="${__wm_install_home}/jvm/jvm/jre" \
     PATH="$PATH:${__wm_install_home}/jvm/jvm/jre/bin" \
-    SAG_HOME="${__wm_install_home}"
+    SAG_HOME="${__wm_install_home}" 
 
 RUN microdnf -y install \
-    # shadow-utils \
+    shadow-utils \
     # libXext \
     # libXrender \
     # libXtst \
     # libXi \
-    #fontconfig \
+    # git-lfs \
+    # fontconfig \
     gtk3 \
-    mesa-libGL \
-    libglvnd-glx \
+    # adwaita-icon-theme \
+    # gdk-pixbuf2 \
+    # librsvg2 \
+    # mesa-libGL \
+    # libglvnd-glx \
     procps-ng && \
     microdnf clean all && \
     groupadd -g ${__wm_grp_id} "${__wm_grp_name}" && \
     useradd --shell /sbin/nologin \
-    --no-create-home --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
+    --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
+
+#The xdg-utils package doesn't exist in UBI8 minimal.
+RUN echo '#!/bin/bash' > /usr/local/bin/xdg-mime && \
+    echo 'exit 0' >> /usr/local/bin/xdg-mime && \
+    chmod +x /usr/local/bin/xdg-mime
 
 COPY --chown=${__wm_user_id}:${__wm_grp_id} --from=jre-packager-and-picker ${__wm_install_home} ${__wm_install_home}
+
+#COPY --chown=${__wm_user_id}:${__wm_grp_id} ./plugins/* ${__wm_install_home}/Designer/eclipse/plugins/
 
 USER ${__wm_user_id}
