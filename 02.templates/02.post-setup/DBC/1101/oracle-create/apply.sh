@@ -69,6 +69,8 @@ createDbAssets(){
     local lDbInitCmd="${lDbInitCmd} --dbms oracle"
     local lDbInitCmd="${lDbInitCmd} --component ${WMUI_DBC_COMPONENT_NAME}"
     local lDbInitCmd="${lDbInitCmd} --version ${WMUI_DBC_COMPONENT_VERSION}"
+    local lDbInitCmd="${lDbInitCmd} --tablespacefordata ${WMUI_DBC_COMPONENT_TSDATA}"
+    local lDbInitCmd="${lDbInitCmd} --tablespaceforindex ${WMUI_DBC_COMPONENT_TSINDEX}"
     local lDbInitCmd="${lDbInitCmd} --url '${lDBC_DB_URL}'"
     local lDbInitCmd="${lDbInitCmd} --user '${WMUI_DBSERVER_USER_NAME}'"
     local lDbInitCmd="${lDbInitCmd} --password '${WMUI_DBSERVER_PASSWORD}'"
