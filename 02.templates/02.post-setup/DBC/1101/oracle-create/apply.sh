@@ -42,7 +42,7 @@ createDbAssets(){
         return 1
     fi
 
-    local lDBC_DB_URL="jdbc:wm:oracle://${WMUI_DBSERVER_HOSTNAME}:${WMUI_DBSERVER_PORT};databaseName=${WMUI_DBSERVER_DATABASE_NAME}"
+    local lDBC_DB_URL="jdbc:wm:oracle://${WMUI_DBSERVER_HOSTNAME}:${WMUI_DBSERVER_PORT};serviceName=${WMUI_DBSERVER_DATABASE_NAME}"
     local lDbcSh="${WMUI_INSTALL_INSTALL_DIR}/common/db/bin/dbConfigurator.sh"
 
     local lCmdCatalog="${lDbcSh} --action catalog"
