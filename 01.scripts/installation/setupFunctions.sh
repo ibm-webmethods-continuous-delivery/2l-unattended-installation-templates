@@ -1122,3 +1122,84 @@ setupFunctionsSourced(){
 
 logI "[setupFunctions.sh] - Setup Functions sourced"
   
+
+# Parameters - mergeProductLists
+# $1 - Space-separated list of template IDs (e.g., "DBC/1101/full APIGateway/1101/cds-e2e-postgres")
+# $2 - Label for the output file (e.g., "combined")
+# $3 - OPTIONAL: Destination folder (default: /tmp)
+# Output: Creates a file named ${2}.productlist.txt in the destination folder
+# The file contains the union of all ProductsLatestList.txt files from the specified templates,
+# sorted and deduplicated.
+## Note this function and its unit tests have been created by Project Bob
+mergeProductLists() {
+  if [ -z "${1}" ]; then
+    logE "[setupFunctions.sh:mergeProductLists()] - Template list is required (parameter 1)"
+    return 1
+  fi
+
+  if [ -z "${2}" ]; then
+    logE "[setupFunctions.sh:mergeProductLists()] - Output label is required (parameter 2)"
+    return 2
+  fi
+
+  local templateList="${1}"
+  local outputLabel="${2}"
+  local destFolder="${3:-/tmp}"
+  local outputFile="${destFolder}/${outputLabel}.productlist.txt"
+  local templatesBaseDir="${WMUI_CACHE_HOME}/02.templates/01.setup"
+
+  # Check if base templates directory exists
+  if [ ! -d "${templatesBaseDir}" ]; then
+    logE "[setupFunctions.sh:mergeProductLists()] - Templates base directory not found: ${templatesBaseDir}"
+    return 3
+  fi
+
+  # Check if destination folder exists, create if not
+  if [ ! -d "${destFolder}" ]; then
+    logI "[setupFunctions.sh:mergeProductLists()] - Creating destination folder: ${destFolder}"
+    mkdir -p "${destFolder}" || {
+      logE "[setupFunctions.sh:mergeProductLists()] - Failed to create destination folder: ${destFolder}"
+      return 4
+    }
+  fi
+
+  # Create a temporary file for collecting all products
+  local tempFile="${destFolder}/.${outputLabel}.productlist.tmp.$$"
+  : > "${tempFile}"  # Create empty file
+
+  local templateCount=0
+  local foundCount=0
+
+  # Process each template
+  for templateId in ${templateList}; do
+    templateCount=$((templateCount + 1))
+    local productListFile="${templatesBaseDir}/${templateId}/ProductsLatestList.txt"
+    
+    if [ -f "${productListFile}" ]; then
+      logI "[setupFunctions.sh:mergeProductLists()] - Processing template: ${templateId}"
+      cat "${productListFile}" >> "${tempFile}"
+      foundCount=$((foundCount + 1))
+    else
+      logW "[setupFunctions.sh:mergeProductLists()] - ProductsLatestList.txt not found for template: ${templateId}"
+      logW "[setupFunctions.sh:mergeProductLists()] - Expected at: ${productListFile}"
+    fi
+  done
+
+  if [ ${foundCount} -eq 0 ]; then
+    logE "[setupFunctions.sh:mergeProductLists()] - No valid ProductsLatestList.txt files found in any of the ${templateCount} templates"
+    rm -f "${tempFile}"
+    return 5
+  fi
+
+  # Sort, deduplicate, and write to output file
+  logI "[setupFunctions.sh:mergeProductLists()] - Merging ${foundCount} product lists..."
+  sort -u "${tempFile}" > "${outputFile}"
+  local lineCount
+  lineCount=$(wc -l < "${outputFile}")
+  
+  # Clean up temporary file
+  rm -f "${tempFile}"
+
+  logI "[setupFunctions.sh:mergeProductLists()] - Successfully created ${outputFile} with ${lineCount} unique products"
+  return 0
+}
