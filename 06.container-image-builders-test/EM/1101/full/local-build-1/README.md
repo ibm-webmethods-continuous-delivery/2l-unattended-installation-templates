@@ -1,6 +1,6 @@
 # Local Build Test Harness for DBC Container Image
 
-This is a test harness for the container build template `05.container-image-builders/EM/1101/full/alpine` that relies on the template `EM/1101/full`.
+This is a test harness for the container build template `05.container-image-builders/EM/1101/full/ubi-min` that relies on the template `EM/1101/full`.
 
 ## Windows (e.g. with Rancher Desktop)
 

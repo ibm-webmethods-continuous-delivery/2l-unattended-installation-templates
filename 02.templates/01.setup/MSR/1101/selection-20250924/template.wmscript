@@ -1,7 +1,7 @@
 #Wed Sep 24 14:38:18 GMT 2025
 IntegrationServerDBblock=0
 selectedFixes=
-TaskEngineRuntimeDriverName=__VERSION1__,6,0,1,2,3,4,5_,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+TaskEngineRuntimeDriverName=__VERSION1__,6,0_,1,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
 TaskEngineRuntimeSampleURLText=0
 IntegrationServerDBUser.Name=__VERSION1__,
 com.wm.distman.utils_panel1=0
@@ -14,7 +14,7 @@ ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
 IntegrationServerDBPass.Name=__VERSION1__,
 IntegrationServerNetworkInterfaceBlock=0
 IntegrationServerDBMsgblock=1
-IntegrationServer.RDBMS.Type=__VERSION1__,6,0,1,2,3,4,5_,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+IntegrationServer.RDBMS.Type=__VERSION1__,6,0_,1,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
 IntegrationServerTitleBlock=0
 TaskEngineRuntimeMsgBlock=0
 IntegrationServerNetworkInterfaceBodyBlock=0
@@ -32,8 +32,8 @@ InstallDir=${WMUI_INSTALL_INSTALL_DIR}
 IntegrationServerdiagnosticPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerdiagnosticPort}
 IntegrationServerPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerPort}
 IntegrationServersecurePort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServersecurePort}
-## CDS on Postgres
+## CDS on Oracle
 TaskEngineRuntimeUrlName=__VERSION1__,${WMUI_WMSCRIPT_CDS_DB_CONN_STRING_URLENCODED}
-# Example: jdbc%3Awm%3Apostgresql%3A%2F%2F%3Cserver%3E%3A%3C5432%7Cport%3E%3BDatabaseName%3D%3Cdatabase%3E
+# Example: jdbc%3Awm%3Aoracle%3A%2F%2F%3Cserver%3E%3A%3C1521%7Cport%3E%3BserviceName%3D%3Cvalue%3E%5B%3B%3Coption%3E%3D%3Cvalue%3E...%5D
 TaskEngineRuntimeUserName=__VERSION1__,${WMUI_WMSCRIPT_CDS_DB_USER}
 TaskEngineRuntimePasswordName=__VERSION1__,${WMUI_WMSCRIPT_CDS_DB_PASSWORD}

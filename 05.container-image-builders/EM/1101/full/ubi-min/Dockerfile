@@ -88,7 +88,7 @@ RUN microdnf -y install \
     microdnf clean all && \
     groupadd -g ${__wm_grp_id} "${__wm_grp_name}" && \
     useradd --shell /sbin/nologin \
-    --no-create-home --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
+    --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
 
 COPY --chown=${__wm_user_id}:${__wm_grp_id} --from=jre-packager-and-picker ${__wm_install_home} ${__wm_install_home}
 
