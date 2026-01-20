@@ -11,7 +11,8 @@ services:
         - __audit_home_dir=${WMUI_AUDIT_HOME}
         - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
         - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
-        - __user_home=${WMUI_USER_HOME}
+        - __user_id=1001
+        - __group_id=1001
     image: local/rhel-vm-emulator
     container_name: install-playground-ubi-1-1
     hostname: install-playground-ubi-1-1

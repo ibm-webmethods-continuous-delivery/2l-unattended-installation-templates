@@ -24,9 +24,9 @@ RUN microdnf -y update &&\
 
 # Layer 2 - this may vary according to the context in this framework
 ARG __user_name=webmethods
-ARG __user_id=888
+ARG __user_id=1001
 ARG __group_name=webmethods
-ARG __group_id=888
+ARG __group_id=1001
 ARG __user_home=/home/${__user_name}
 
 # Usually for testing purposes we would declare these folders as volumes
