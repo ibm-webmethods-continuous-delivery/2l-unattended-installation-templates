@@ -1,48 +1,14 @@
+
 volumes:
   install-home: {}
-  upd-mgr-home: {}
+  sum-home: {}
   audit: {}
   esdata: {}
-  db-data: {}
 
 networks:
     n1:
       external: false
-
 services:
-  db:
-    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
-    restart: always
-    environment:
-      - POSTGRES_USER=${WMUI_DBSERVER_USER_NAME}
-      - POSTGRES_PASSWORD=${WMUI_DBSERVER_PASSWORD}
-    networks:
-      n1:
-        aliases:
-          - ${WMUI_DBSERVER_HOSTNAME}
-    # comment out ports, supposed to be used internally only
-    #ports:
-    #  - "${H_WMUI_PORT_PREFIX}32:5432"
-    volumes: 
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${WMUI_DBSERVER_USER_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  
-  adminer:
-    image: adminer
-    container_name: agw-cds-e2e-postgres-adminer
-    hostname: adminer
-    networks:
-      - n1
-    ports:
-      - "${H_WMUI_PORT_PREFIX}80:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-
   apigateway:
     build:
       context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
@@ -51,16 +17,18 @@ services:
         - __install_dir=${WMUI_INSTALL_INSTALL_DIR}
         - __upd_mgr_home_dir=${WMUI_UPD_MGR_HOME}
         - __user_home=${WMUI_USER_HOME}
-    image: local/api-gw-wpm-e2e-cu-postgres-1101-test-1
-    container_name: api-gw-wpm-e2e-cu-postgres-1101-test-1
-    hostname: api-gw-wpm-e2e-cu-postgres-1101-test-1
+        - __script_dir=${WMUI_TEST_LOCAL_SCRIPTS_DIR}
+
+    image: local/api-gw-1101-default-test-2
+    container_name: api-gw-1101-default-test-2
+    hostname: api-gw-1101-default-test-2
     ulimits:
       nproc: 4096
       nofile: 65536
     volumes:
       # the following must match the Dockerfile folders, otherwise permissions on FS will not work
       - install-home:${WMUI_INSTALL_INSTALL_DIR}
-      - upd-mgr-home:${WMUI_UPD_MGR_HOME}
+      - sum-home:${WMUI_UPD_MGR_HOME}
       - audit:${WMUI_AUDIT_BASE_DIR}
       - ./scripts:${WMUI_TEST_LOCAL_SCRIPTS_DIR}
       # These must be provided, they are prerequisites
@@ -72,8 +40,6 @@ services:
     environment:
       # we declare WMUI_HOME because we mount it here
       - WMUI_HOME
-      - WMUI_AUDIT_BASE_DIR
-      - WMUI_UPD_MGR_HOME
       # setupFunctions prerequisites map, declared here because provided by host
       - WMUI_INSTALL_INSTALLER_BIN
       - WMUI_INSTALL_IMAGE_FILE
@@ -91,26 +57,30 @@ services:
       - WMUI_WORK_DIR
       # host related, but still needed
       - H_WMUI_PORT_PREFIX
-      # Database configuration for CDS
-      - WMUI_DBSERVER_HOSTNAME
-      - WMUI_DBSERVER_DATABASE_NAME
-      - WMUI_DBSERVER_USER_NAME
-      - WMUI_DBSERVER_PASSWORD
-      - WMUI_DBSERVER_PORT
-      - WMUI_WMSCRIPT_CDS_DB_USER=${WMUI_DBSERVER_USER_NAME}
-      - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${WMUI_DBSERVER_PASSWORD}
-      - WMUI_WMSCRIPT_CDS_CONN_STRING
-      - WMUI_TEST_LOCAL_SCRIPTS_DIR
-      # Name and port of the REST interface of the Elasticsearch container.
+      # Name and port of the REST interface of the Elasticsearch container / core.
       - apigw_elasticsearch_hosts=core-elasticsearch:9200
+      - apigw_elasticsearch_tenantId=core
       # HTTPS enablement.
       - apigw_elasticsearch_https_enabled=false
       # Username and password for Elasticsearch. As standard leave it blank.
       - apigw_elasticsearch_http_username=${PROVIDED_ELASTIC_USERNAME}
       - apigw_elasticsearch_http_password=${PROVIDED_ELASTIC_PASSWORD}
+
+      # Name and port of the REST interface of the Elasticsearch container / analytics.
+      - apigw_analyticsDataStore_hosts=core-elasticsearch:9200
+      - apigw_analyticsDataStore_tenantId=analytics
+      # HTTPS enablement.
+      - apigw_analyticsDataStore_https_enabled=false
+      # Username and password for Elasticsearch. As standard leave it blank.
+      - apigw_analyticsDataStore_http_username=${PROVIDED_ELASTIC_USERNAME}
+      - apigw_analyticsDataStore_http_password=${PROVIDED_ELASTIC_PASSWORD}
+
       # external kibana
       - apigw_kibana_dashboardInstance=http://host.docker.internal:${H_WMUI_PORT_PREFIX}56
       # - apigw_kibana_autostart=false
+      - WMUI_TEST_LOCAL_SCRIPTS_DIR
+      - WMUI_UPD_MGR_HOME
+
     ports:
       - "${H_WMUI_PORT_PREFIX}73:9073"
       - "${H_WMUI_PORT_PREFIX}72:9072"
@@ -119,18 +89,12 @@ services:
       n1:
         aliases:
           - apigw-server
-    depends_on:
-      db:
-        condition: service_healthy
-      core-elasticsearch:
-        condition: service_healthy
     entrypoint: ${WMUI_TEST_LOCAL_SCRIPTS_DIR}/containerEntrypoint.sh
     healthcheck:
       interval: 10s
       retries: 200
-      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
+      test: curl -u 'Administrator:manage' --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
 
-  
   core-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:${CORE_ELK_VERSION}
     volumes:
@@ -169,7 +133,7 @@ services:
   elasticvue:
     image: cars10/elasticvue
     ports:
-      - "${H_WMUI_PORT_PREFIX}81:8080"
+      - "${H_WMUI_PORT_PREFIX}80:8080"
     networks:
       - n1
     depends_on:
