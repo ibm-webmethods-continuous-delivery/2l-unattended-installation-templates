@@ -2,7 +2,7 @@
 
 ## General Rules applied
 
-The project is built so that scripts may be downloaded or injected into linux nodes, either hosts, vms or containers.
+The project is built so that scripts may be downloaded or injected into linux nodes, either hosts, vms or containers. It is based on the "posix utils" repository in the same IWCD framework.
 
 The scripts themselves have minimal comments to keep them light.
 
@@ -10,7 +10,7 @@ All files that require parameters are managed with gnu envsusbst. This means tha
 
 ### Template variables
 
-By convention, the wmscript templates will contain lines such as the following one when dealing with variables. Templates built before this convention are deprecated. Whnever a key contains a point (`.`) it is substituted with underscore (`_`)
+By convention, the wmscript templates will contain lines such as the following one when dealing with variables. Templates built before this convention are deprecated. Whenever a key contains a point (`.`) it is substituted with underscore (`_`)
 
 ```sh
 key=${WMUI_WMSCRIPT_Key}
@@ -65,7 +65,7 @@ The `setupFunctions.sh` module provides a comprehensive framework for automated 
   - Handles environment variable substitution in wmscript templates
   - Provides detailed logging and error handling
 
-#### Update Manager Operations  
+#### Update Manager Operations
 - **`bootstrapUpdMgr()`** - Bootstraps Software AG Update Manager for patch management
 - **`patchUpdMgr()`** - Updates the Update Manager itself using provided images
 - **`patchInstallation()`** - Applies patches to installed products via Update Manager
@@ -73,7 +73,7 @@ The `setupFunctions.sh` module provides a comprehensive framework for automated 
 
 #### Template Management
 - **`applySetupTemplate()`** - Orchestrates complete setup from template directories
-  - Downloads required files from cache/repository  
+  - Downloads required files from cache/repository
   - Sources environment defaults and checks prerequisites
   - **NEW**: Automatically generates `InstallProducts` line from product lists
   - Supports `useLatest` parameter (YES/NO) to choose between latest or versioned products
@@ -98,7 +98,7 @@ Each setup template in `02.templates/01.setup/` must follow this structure:
 <Product>/<Version>/<Variant>/
 ├── template.wmscript          # Installation script (MUST NOT contain InstallProducts)
 ├── ProductsLatestList.txt     # Latest product versions (one per line)
-├── ProductsVersionedList.txt  # Specific product versions (one per line) 
+├── ProductsVersionedList.txt  # Specific product versions (one per line)
 ├── setEnvDefaults.sh         # Optional: Environment variable defaults
 └── checkPrerequisites.sh     # Optional: Custom prerequisite checks
 ```
@@ -138,6 +138,6 @@ The framework relies on these key environment variables:
 # Apply template using latest products (default)
 applySetupTemplate "APIGateway/1101/default"
 
-# Apply template using specific versioned products  
+# Apply template using specific versioned products
 applySetupTemplate "APIGateway/1101/default" "NO"
 ```

@@ -3,20 +3,28 @@
 # Copyright IBM Corp. 2025 - 2025
 # SPDX-License-Identifier: Apache-2.0
 #
-# WARNING: POSIX compatibility is pursued, but this is not a strict POSIX script. 
+# WARNING: POSIX compatibility is pursued, but this is not a strict POSIX script.
 # The following exceptions apply
 # - local variables for functions
 # shellcheck disable=SC3043
 
-# Dependency
-if ! command -V "logI" 2>/dev/null | grep function >/dev/null; then
-  echo "sourcing commonFunctions.sh ..."
-  if [ ! -f "${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh" ]; then
-    echo "Panic, framework issue! File ${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh does not exist. WMUI_CACHE_HOME=${WMUI_CACHE_HOME}"
-    exit 155
-  fi
+# BREAKING CHANGE: This file now requires posix-shell-utils (2.audit.sh) to be sourced first
+# Verify that PU audit is loaded
+if [ -z "${__2__audit_session_dir}" ]; then
+  echo "FATAL: setupFunctions.sh requires posix-shell-utils (2.audit.sh) to be sourced first!"
+  echo "Please source 2l-posix-shell-utils/code/2.audit.sh before sourcing setupFunctions.sh"
+  exit 202
+fi
+
+# Map PU audit session to WMUI variables for compatibility
+export WMUI_AUDIT_SESSION_DIR="${__2__audit_session_dir}"
+
+# Source commonFunctions.sh for WMUI-specific utility functions
+if [ -f "${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh" ]; then
   # shellcheck source=/dev/null
   . "${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh"
+else
+  echo "WARNING: ${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh not found"
 fi
 
 init() {
@@ -53,24 +61,24 @@ export WMUI_SDC_ONLINE_MODE="${WMUI_SDC_ONLINE_MODE:-0}" # default if offline fo
 # $1 - installer binary file
 # $2 - script file for installer
 # $3 - OPTIONAL: debugLevel for installer
-installProducts() {
+wmui_install_products() {
 
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:installProducts()] - Product installation failed: invalid installer file: ${1}"
+    pu_log_e "[setupFunctions.sh:installProducts()] - Product installation failed: invalid installer file: ${1}"
     return 1
   fi
 
   if [ ! -f "${2}" ]; then
-    logE "[setupFunctions.sh:installProducts()] - Product installation failed: invalid installer script file: ${2}"
+    pu_log_e "[setupFunctions.sh:installProducts()] - Product installation failed: invalid installer script file: ${2}"
     return 2
   fi
 
   if [ ! "$(which envsubst)" ]; then
-    logE "[setupFunctions.sh:installProducts()] - Product installation requires envsubst to be installed!"
+    pu_log_e "[setupFunctions.sh:installProducts()] - Product installation requires envsubst to be installed!"
     return 3
   fi
 
-  logI "[setupFunctions.sh:installProducts()] - Installing according to script ${2}"
+  pu_log_i "[setupFunctions.sh:installProducts()] - Installing according to script ${2}"
 
   local debugLevel="${3:-"verbose"}"
   local d
@@ -94,23 +102,28 @@ installProducts() {
     local installCmd="${installCmd} -scriptErrorInteract no"
   fi
   local installCmd="${installCmd} -debugFile "'"'"${WMUI_AUDIT_SESSION_DIR}/debugInstall.log"'"'
-  controlledExec "${installCmd}" "product-install"
+  pu_audited_exec "${installCmd}" "product-install"
 
   RESULT_installProducts=$?
   if [ ${RESULT_installProducts} -eq 0 ]; then
-    logI "Product installation successful"
+    pu_log_i "Product installation successful"
   else
-    logE "[setupFunctions.sh:installProducts()] - Product installation failed, code ${RESULT_installProducts}"
-    logD "[setupFunctions.sh:installProducts()] - Dumping the install.wmscript file into the session audit folder..."
+    pu_log_e "[setupFunctions.sh:installProducts()] - Product installation failed, code ${RESULT_installProducts}"
+    pu_log_d "[setupFunctions.sh:installProducts()] - Dumping the install.wmscript file into the session audit folder..."
     if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
       cp "${tempInstallScript}" "${WMUI_AUDIT_SESSION_DIR}/"
     fi
-    logE "[setupFunctions.sh:installProducts()] - Looking for APP_ERROR in the debug file..."
+    pu_log_e "[setupFunctions.sh:installProducts()] - Looking for APP_ERROR in the debug file..."
     grep 'APP_ERROR' "${WMUI_AUDIT_SESSION_DIR}/debugInstall.log"
-    logE "[setupFunctions.sh:installProducts()] - returning code 4"
+    pu_log_e "[setupFunctions.sh:installProducts()] - returning code 4"
     return 4
   fi
   rm -f "${tempInstallScript}"
+}
+
+installProducts() {
+  pu_log_e "installProducts is deprecated, use pu_install_products instead"
+  pu_install_products "${@}"
 }
 
 # Parameters - bootstrapUpdMgr
@@ -119,13 +132,13 @@ installProducts() {
 # $3 - OPTIONAL Where to install (SUM Home), default /opt/webmethods/upd-mgr
 bootstrapUpdMgr() {
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:bootstrapUpdMgr()] - Software AG Update Manager Bootstrap file not found: ${1}"
+    pu_log_e "[setupFunctions.sh:bootstrapUpdMgr()] - Software AG Update Manager Bootstrap file not found: ${1}"
     return 1
   fi
 
   if [ "${WMUI_SDC_ONLINE_MODE}" -eq 0 ]; then
     if [ ! -f "${2}" ]; then
-      logE "[setupFunctions.sh:bootstrapUpdMgr()] - Fixes image file not found: ${2}"
+      pu_log_e "[setupFunctions.sh:bootstrapUpdMgr()] - Fixes image file not found: ${2}"
       return 2
     fi
   fi
@@ -133,7 +146,7 @@ bootstrapUpdMgr() {
   local UPD_MGR_HOME="${3:-"/opt/webmethods/upd-mgr"}"
 
   if [ -d "${UPD_MGR_HOME}/UpdateManager" ]; then
-    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Update manager already present, skipping bootstrap, attempting to update from given image..."
+    pu_log_i "[setupFunctions.sh:bootstrapUpdMgr()] - Update manager already present, skipping bootstrap, attempting to update from given image..."
     patchUpdMgr "${2}" "${UPD_MGR_HOME}"
     return 0
   fi
@@ -145,17 +158,17 @@ bootstrapUpdMgr() {
   if [ "${WMUI_SDC_ONLINE_MODE}" -eq 0 ]; then
     bootstrapCmd="${bootstrapCmd} -i ${2}"
     # note: everything is always offline except this, as it is not requiring empower credentials
-    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} using image ${2} into ${UPD_MGR_HOME}..."
+    pu_log_i "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} using image ${2} into ${UPD_MGR_HOME}..."
   else
-    logI "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} into ${UPD_MGR_HOME} using ONLINE mode"
+    pu_log_i "[setupFunctions.sh:bootstrapUpdMgr()] - Bootstrapping UPD_MGR from ${1} into ${UPD_MGR_HOME} using ONLINE mode"
   fi
-  controlledExec "${bootstrapCmd}" "upd-mgr-bootstrap"
+  pu_audited_exec "${bootstrapCmd}" "upd-mgr-bootstrap"
   RESULT_controlledExec=$?
 
   if [ ${RESULT_controlledExec} -eq 0 ]; then
-    logI "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap successful"
+    pu_log_i "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap successful"
   else
-    logE "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap failed, code ${RESULT_controlledExec}"
+    pu_log_e "[setupFunctions.sh:bootstrapUpdMgr()] - UPD_MGR Bootstrap failed, code ${RESULT_controlledExec}"
     return 3
   fi
 }
@@ -165,30 +178,30 @@ bootstrapUpdMgr() {
 # $2 - OPTIONAL UPD_MGR Home, default /opt/webmethods/upd-mgr
 patchUpdMgr() {
   if [ "${WMUI_SDC_ONLINE_MODE}" -ne 0 ]; then
-    logI "[setupFunctions.sh:patchUpdMgr()] - patchUpdMgr() ignored in online mode"
+    pu_log_i "[setupFunctions.sh:patchUpdMgr()] - patchUpdMgr() ignored in online mode"
     return 0
   fi
 
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:patchUpdMgr()] - Fixes images file ${1} does not exist!"
+    pu_log_e "[setupFunctions.sh:patchUpdMgr()] - Fixes images file ${1} does not exist!"
   fi
   local UPD_MGR_HOME="${2:-'/opt/webmethods/upd-mgr'}"
   local d
   d="$(date +%y-%m-%dT%H.%M.%S_%3N)"
 
   if [ ! -d "${UPD_MGR_HOME}/UpdateManager" ]; then
-    logI "[setupFunctions.sh:patchUpdMgr()] - Update manager missing, nothing to patch..."
+    pu_log_i "[setupFunctions.sh:patchUpdMgr()] - Update manager missing, nothing to patch..."
     return 0
   fi
 
-  logI "[setupFunctions.sh:patchUpdMgr()] - Updating UPD_MGR from image ${1} ..."
+  pu_log_i "[setupFunctions.sh:patchUpdMgr()] - Updating UPD_MGR from image ${1} ..."
   local crtDir
   crtDir=$(pwd)
   cd "${UPD_MGR_HOME}/bin" || return 2
-  controlledExec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "patchUpdMgr"
+  pu_audited_exec "./UpdateManagerCMD.sh -selfUpdate true -installFromImage "'"'"${1}"'"' "patchUpdMgr"
   RESULT_controlledExec=$?
   if [ "${RESULT_controlledExec}" -ne 0 ]; then
-    logE "[setupFunctions.sh:patchUpdMgr()] - Update Manager Self Update failed with code ${RESULT_controlledExec}"
+    pu_log_e "[setupFunctions.sh:patchUpdMgr()] - Update Manager Self Update failed with code ${RESULT_controlledExec}"
     return 1
   fi
   cd "${crtDir}" || return 3
@@ -202,12 +215,12 @@ patchUpdMgr() {
 removeDiagnoserPatch() {
   local UPD_MGR_HOME="${3:-"/opt/webmethods/upd-mgr"}"
   if [ ! -f "${UPD_MGR_HOME}/bin/UpdateManagerCMD.sh" ]; then
-    logE "[setupFunctions.sh:removeDiagnoserPatch()] - Update manager not found at the indicated location ${UPD_MGR_HOME}"
+    pu_log_e "[setupFunctions.sh:removeDiagnoserPatch()] - Update manager not found at the indicated location ${UPD_MGR_HOME}"
     return 1
   fi
   local PRODUCTS_HOME="${4:-"/opt/webmethods/products"}"
   if [ ! -d "${PRODUCTS_HOME}" ]; then
-    logE "[setupFunctions.sh:removeDiagnoserPatch()] - Product installation folder is missing: ${PRODUCTS_HOME}"
+    pu_log_e "[setupFunctions.sh:removeDiagnoserPatch()] - Product installation folder is missing: ${PRODUCTS_HOME}"
     return 2
   fi
 
@@ -227,24 +240,24 @@ removeDiagnoserPatch() {
   crtDir=$(pwd)
   cd "${UPD_MGR_HOME}/bin" || return 4
 
-  logI "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of existing fixes..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforeSPRemoval"
+  pu_log_i "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of existing fixes..."
+  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforeSPRemoval"
 
-  logI "[setupFunctions.sh:removeDiagnoserPatch()] - Removing support patch ${1} from installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
-  controlledExec "./UpdateManagerCMD.sh -readScript \"${tmpScriptFile}\"" "SPFixRemoval"
+  pu_log_i "[setupFunctions.sh:removeDiagnoserPatch()] - Removing support patch ${1} from installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
+  pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${tmpScriptFile}\"" "SPFixRemoval"
   RESULT_controlledExec=$?
 
-  logI "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of fixes after the execution of SP removal..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterSPRemoval"
+  pu_log_i "[setupFunctions.sh:removeDiagnoserPatch()] - Taking a snapshot of fixes after the execution of SP removal..."
+  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterSPRemoval"
 
   cd "${crtDir}" || return 5
 
   if [ ${RESULT_controlledExec} -eq 0 ]; then
-    logI "[setupFunctions.sh:removeDiagnoserPatch()] - Support patch removal was successful"
+    pu_log_i "[setupFunctions.sh:removeDiagnoserPatch()] - Support patch removal was successful"
   else
-    logE "[setupFunctions.sh:removeDiagnoserPatch()] - Support patch removal failed, code ${RESULT_controlledExec}"
+    pu_log_e "[setupFunctions.sh:removeDiagnoserPatch()] - Support patch removal failed, code ${RESULT_controlledExec}"
     if [ "${WMUI_DEBUG_ON}" ]; then
-      logD "Recovering Update Manager logs for further investigations"
+      pu_log_d "Recovering Update Manager logs for further investigations"
       mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
       cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
       cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
@@ -269,7 +282,7 @@ removeDiagnoserPatch() {
 # $5 - OPTIONAL Engineering patch diagnoser key (default "5437713_PIE-68082_5", however user must provide if $4=Y)
 patchInstallation() {
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:patchInstallation()] - Fixes image file not found: ${1}"
+    pu_log_e "[setupFunctions.sh:patchInstallation()] - Fixes image file not found: ${1}"
     return 1
   fi
 
@@ -296,28 +309,28 @@ patchInstallation() {
   crtDir=$(pwd)
   cd "${UPD_MGR_HOME}/bin" || return 3
 
-  logI "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of existing fixes..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforePatching"
+  pu_log_i "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of existing fixes..."
+  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesBeforePatching"
 
-  logI "[setupFunctions.sh:patchInstallation()] - Explicitly patch UPD_MGR itself, if required..."
+  pu_log_i "[setupFunctions.sh:patchInstallation()] - Explicitly patch UPD_MGR itself, if required..."
   patchUpdMgr "${1}" "${UPD_MGR_HOME}"
 
-  logI "[setupFunctions.sh:patchInstallation()] - Applying fixes from image ${1} to installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
+  pu_log_i "[setupFunctions.sh:patchInstallation()] - Applying fixes from image ${1} to installation ${PRODUCTS_HOME} using UPD_MGR in ${UPD_MGR_HOME}..."
 
-  controlledExec "./UpdateManagerCMD.sh -readScript \"${fixesScriptFile}\"" "PatchInstallation"
+  pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${fixesScriptFile}\"" "PatchInstallation"
   RESULT_controlledExec=$?
 
-  logI "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of fixes after the patching..."
-  controlledExec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterPatching"
+  pu_log_i "[setupFunctions.sh:patchInstallation()] - Taking a snapshot of fixes after the patching..."
+  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${PRODUCTS_HOME}"'"' "FixesAfterPatching"
 
   cd "${crtDir}" || return 4
 
   if [ ${RESULT_controlledExec} -eq 0 ]; then
-    logI "[setupFunctions.sh:patchInstallation()] - Patch successful"
+    pu_log_i "[setupFunctions.sh:patchInstallation()] - Patch successful"
   else
-    logE "[setupFunctions.sh:patchInstallation()] - Patch failed, code ${RESULT_controlledExec}"
+    pu_log_e "[setupFunctions.sh:patchInstallation()] - Patch failed, code ${RESULT_controlledExec}"
     if [ "${WMUI_DEBUG_ON}" ]; then
-      logD "[setupFunctions.sh:patchInstallation()] - Recovering Update Manager logs for further investigations"
+      pu_log_d "[setupFunctions.sh:patchInstallation()] - Recovering Update Manager logs for further investigations"
       mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
       cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
       cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
@@ -344,26 +357,26 @@ patchInstallation() {
 setupProductsAndFixes() {
 
   if [ ! -f "${1}" ]; then
-    logE "[setupFunctions.sh:setupProductsAndFixes()] - Installer binary file not found: ${1}"
+    pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Installer binary file not found: ${1}"
     return 1
   fi
   if [ ! -f "${2}" ]; then
-    logE "[setupFunctions.sh:setupProductsAndFixes()] - Installer script file not found: ${2}"
+    pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Installer script file not found: ${2}"
     return 2
   fi
 
   if [ "${WMUI_PATCH_AVAILABLE}" -ne 0 ]; then
     if [ ! -f "${3}" ]; then
-      logE "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap binary file not found: ${3}"
+      pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap binary file not found: ${3}"
       return 3
     fi
     if [ ! -f "${4}" ]; then
-      logE "[setupFunctions.sh:setupProductsAndFixes()] - Fixes image file not found: ${4}"
+      pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Fixes image file not found: ${4}"
       return 4
     fi
   fi
   if [ ! "$(which envsubst)" ]; then
-    logE "[setupFunctions.sh:setupProductsAndFixes()] - Product installation requires envsubst to be installed!"
+    pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Product installation requires envsubst to be installed!"
     return 5
   fi
   # apply environment substitutions
@@ -376,22 +389,22 @@ setupProductsAndFixes() {
 
   # note no inline returns from now as we need to clean locally allocated resources
   if [ ! -f "${lProductImageFile}" ]; then
-    logE "[setupFunctions.sh:setupProductsAndFixes()] - Product image file not found: ${lProductImageFile}. Does the wmscript have the imageFile=... line?"
+    pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Product image file not found: ${lProductImageFile}. Does the wmscript have the imageFile=... line?"
     RESULT_setupProductsAndFixes=6
   else
     local lInstallDir
     lInstallDir=$(grep InstallDir "${installWmscriptFile}" | cut -d "=" -f 2)
     if [ -d "${lInstallDir}" ]; then
-      logW "[setupFunctions.sh:setupProductsAndFixes()] - Install folder already present..."
+      pu_log_w "[setupFunctions.sh:setupProductsAndFixes()] - Install folder already present..."
       # shellcheck disable=SC2012,SC2046
       if [ $(ls -1A "${lInstallDir}" | wc -l) -gt 0 ]; then
-        logW "[setupFunctions.sh:setupProductsAndFixes()] - Install folder is not empty!"
+        pu_log_w "[setupFunctions.sh:setupProductsAndFixes()] - Install folder is not empty!"
       fi
     else
       mkdir -p "${lInstallDir}"
     fi
     if [ ! -d "${lInstallDir}" ]; then
-      logE "[setupFunctions.sh:setupProductsAndFixes()] - Cannot create the installation directory!"
+      pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Cannot create the installation directory!"
       RESULT_setupProductsAndFixes=7
     else
       local d
@@ -405,7 +418,7 @@ setupProductsAndFixes() {
       installProducts "${1}" "${2}" "${installerDebugLevel}"
       RESULT_installProducts=$?
       if [ ${RESULT_installProducts} -ne 0 ]; then
-        logE "[setupFunctions.sh:setupProductsAndFixes()] - installProducts failed, code ${RESULT_installProducts}!"
+        pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - installProducts failed, code ${RESULT_installProducts}!"
         RESULT_setupProductsAndFixes=8
       else
 
@@ -418,7 +431,7 @@ setupProductsAndFixes() {
           bootstrapUpdMgr "${3}" "${4}" "${lUpdMgrHome}"
           local RESULT_bootstrapUpdMgr=$?
           if [ ${RESULT_bootstrapUpdMgr} -ne 0 ]; then
-            logE "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap failed, code ${RESULT_bootstrapUpdMgr}!"
+            pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Update Manager bootstrap failed, code ${RESULT_bootstrapUpdMgr}!"
             RESULT_setupProductsAndFixes=9
           else
             # Parameters - patchInstallation
@@ -428,15 +441,15 @@ setupProductsAndFixes() {
             patchInstallation "${4}" "${lUpdMgrHome}" "${lInstallDir}"
             RESULT_patchInstallation=$?
             if [ ${RESULT_patchInstallation} -ne 0 ]; then
-              logE "[setupFunctions.sh:setupProductsAndFixes()] - Patch Installation failed, code ${RESULT_patchInstallation}!"
+              pu_log_e "[setupFunctions.sh:setupProductsAndFixes()] - Patch Installation failed, code ${RESULT_patchInstallation}!"
               RESULT_setupProductsAndFixes=10
             else
-              logI "[setupFunctions.sh:setupProductsAndFixes()] - Product and Fixes setup completed successfully"
+              pu_log_i "[setupFunctions.sh:setupProductsAndFixes()] - Product and Fixes setup completed successfully"
               RESULT_setupProductsAndFixes=0
             fi
           fi
         else
-          logI "[setupFunctions.sh:setupProductsAndFixes()] - Skipping patch installation, fixes not available."
+          pu_log_i "[setupFunctions.sh:setupProductsAndFixes()] - Skipping patch installation, fixes not available."
           RESULT_setupProductsAndFixes=0
         fi
       fi
@@ -453,82 +466,82 @@ setupProductsAndFixes() {
 # Environment must also have valid values for the vars required by the referred template
 applySetupTemplate() {
   # TODO: render checkPrerequisites.sh optional
-  logI "[setupFunctions.sh:applySetupTemplate()] - Applying Setup Template ${1}"
+  pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Applying Setup Template ${1}"
   huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript" || return 1
 
   # Hunt for products list files and create enhanced template
   local useLatest="${2:-YES}"
   local productsListFile
-  
+
   if [ "${useLatest}" = "NO" ]; then
     productsListFile="ProductsVersionedList.txt"
   else
     productsListFile="ProductsLatestList.txt"
   fi
-  
+
   huntForWmuiFile "02.templates/01.setup/${1}" "${productsListFile}" || return 2
-  
+
   if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" ]; then
-    logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+    pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
     return 2
   fi
-  
+
   # Create temporary enhanced template with InstallProducts line
   local d
   d=$(date +%Y-%m-%dT%H.%M.%S_%3N)
   local tempEnhancedTemplate="${WMUI_AUDIT_SESSION_DIR}/template_enhanced_${d}.wmscript"
-  
+
   # Copy original template
   cp "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" "${tempEnhancedTemplate}"
-  
+
   # Create sorted CSV from products list and append to template
   local productsListSorted="${WMUI_AUDIT_SESSION_DIR}/products_sorted_${d}.tmp"
   sort "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" > "${productsListSorted}"
   local productsCsv
   productsCsv=$(linesFileToCsvString "${productsListSorted}")
   local RESULT_linesFileToCsvString=$?
-  
+
   if [ ${RESULT_linesFileToCsvString} -ne 0 ]; then
-    logE "[setupFunctions.sh:applySetupTemplate()] - Failed to create CSV string from products list"
+    pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Failed to create CSV string from products list"
     rm -f "${productsListSorted}" "${tempEnhancedTemplate}"
     return 3
   fi
-  
+
   echo "InstallProducts=${productsCsv}" >> "${tempEnhancedTemplate}"
   rm -f "${productsListSorted}"
-  
-  logI "[setupFunctions.sh:applySetupTemplate()] - Created enhanced template with $(wc -l < "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}") products from ${productsListFile}"
+
+  pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Created enhanced template with $(wc -l < "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}") products from ${productsListFile}"
 
   # environment defaults for setup
-  logI "[setupFunctions.sh:applySetupTemplate()] - Sourcing variable values for template ${1} ..."
-  huntForWmuiFile "02.templates/01.setup/${1}" "setEnvDefaults.sh" 
+  pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Sourcing variable values for template ${1} ..."
+  huntForWmuiFile "02.templates/01.setup/${1}" "setEnvDefaults.sh"
   if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh" ]; then
-    logI "[setupFunctions.sh:applySetupTemplate()] - Template ${1} does not have any default variable values, file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh has not been provided."
+    pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Template ${1} does not have any default variable values, file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh has not been provided."
   else
-    logI "[setupFunctions.sh:applySetupTemplate()] - Sourcing ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh ..."
+    pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Sourcing ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh ..."
     chmod u+x "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh" >/dev/null
     #shellcheck source=/dev/null
     . "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh"
   fi
-  
+
   checkSetupTemplateBasicPrerequisites
   local RESULT_checkSetupTemplateBasicPrerequisites=$?
   if [ ${RESULT_checkSetupTemplateBasicPrerequisites} -ne 0 ]; then
-    logE "[setupFunctions.sh:applySetupTemplate()] - Basic prerequisites check failed with code ${RESULT_checkSetupTemplateBasicPrerequisites}"
+    pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Basic prerequisites check failed with code ${RESULT_checkSetupTemplateBasicPrerequisites}"
     return 100
   fi
 
   ### Eventually check prerequisites
-  huntForWmuiFile "02.templates/01.setup/${1}" "checkPrerequisites.sh" || logI 
+  huntForWmuiFile "02.templates/01.setup/${1}" "checkPrerequisites.sh" || pu_log_i
   if [ -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" ]; then
-    logI "[setupFunctions.sh:applySetupTemplate()] - Checking installation prerequisites for template ${1} ..."
+    pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Checking installation prerequisites for template ${1} ..."
     chmod u+x "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" >/dev/null
     "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" || return 5
   else
-    logI "[setupFunctions.sh:applySetupTemplate()] - Check prerequisites script not present, skipping check..."
+    pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Check prerequisites script not present, skipping check..."
   fi
 
-  logI "[setupFunctions.sh:applySetupTemplate()] - Setting up products and fixes for template ${1} ..."
+  pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Setting up products and fixes for template ${1} ..."
   setupProductsAndFixes \
     "${WMUI_INSTALL_INSTALLER_BIN}" \
     "${tempEnhancedTemplate}" \
@@ -537,12 +550,12 @@ applySetupTemplate() {
     "${WMUI_UPD_MGR_HOME}" \
     "verbose"
   local RESULT_setupProductsAndFixes=$?
-  
+
   # Clean up temporary enhanced template
   rm -f "${tempEnhancedTemplate}"
-  
+
   if [ ${RESULT_setupProductsAndFixes} -ne 0 ]; then
-    logE "[setupFunctions.sh:applySetupTemplate()] - Setup for template ${1} failed, code ${RESULT_setupProductsAndFixes}"
+    pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Setup for template ${1} failed, code ${RESULT_setupProductsAndFixes}"
     return 4
   fi
 }
@@ -555,30 +568,30 @@ applySetupTemplate() {
 # $5 - Optional (future TODO - BA pass for the URL)
 assureDownloadableFile() {
   if [ ! -f "${1}" ]; then
-    logI "[setupFunctions.sh:assureDownloadableFile()] - File ${1} does not exist, attempting download from ${2}"
+    pu_log_i "[setupFunctions.sh:assureDownloadableFile()] - File ${1} does not exist, attempting download from ${2}"
     if ! which sha256sum > /dev/null; then
-      logE "[setupFunctions.sh:assureDownloadableFile()] - Cannot find sha256sum"
+      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find sha256sum"
       return 5
     fi
 
     if ! which curl > /dev/null; then
-      logE "[setupFunctions.sh:assureDownloadableFile()] - Cannot find curl"
+      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find curl"
       return 1
     fi
-    
+
     if ! curl "${2}" -o "${1}"; then
-      logE "[setupFunctions.sh:assureDownloadableFile()] - Cannot download from ${2}"
+      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot download from ${2}"
       return 2
     fi
 
     if [ ! -f "${1}" ]; then
-      logE "[setupFunctions.sh:assureDownloadableFile()] - File ${1} waa not downloaded even if curl command succeded"
+      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - File ${1} waa not downloaded even if curl command succeded"
       return 3
     fi
   fi
   if ! echo "${3}  ${1}" | sha256sum -c -; then
-    logE "[setupFunctions.sh:assureDownloadableFile()] - sha256sum check for file ${1} failed"
-    logE "[setupFunctions.sh:assureDownloadableFile()] - sha256sum expected was ${3}, actual is"
+    pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum check for file ${1} failed"
+    pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum expected was ${3}, actual is"
     sha256sum "${1}"
     return 4
   fi
@@ -592,7 +605,7 @@ assureDefaultInstaller() {
   WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
   local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
   if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
-    logE "[setupFunctions.sh:assureDefaultInstaller()] - Cannot assure default installer!"
+    pu_log_e "[setupFunctions.sh:assureDefaultInstaller()] - Cannot assure default installer!"
     return 1
   fi
   chmod u+x "${installerBin}"
@@ -606,7 +619,7 @@ assureDefaultUpdMgrBootstrap() {
   WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
   local lUpdMgrBootstrap="${1:-$WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
   if ! assureDownloadableFile "${lUpdMgrBootstrap}" "${updMgrBootstrapUrl}" "${updMgrBootstrapSha256Sum}"; then
-    logE "[setupFunctions.sh:assureDefaultUpdMgrBootstrap()] - Cannot assure default sum bootstrap!"
+    pu_log_e "[setupFunctions.sh:assureDefaultUpdMgrBootstrap()] - Cannot assure default sum bootstrap!"
     return 1
   fi
   chmod u+x "${lUpdMgrBootstrap}"
@@ -629,7 +642,7 @@ generateFixesImageFromTemplate() {
   local d
   d="$(date +%y-%m-%dT%H.%M.%S_%3N)"
   local lFixesTag="${3:-$lCrtDate}"
-  logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Addressing fixes image for setup template ${1} and tag ${lFixesTag}..."
+  pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Addressing fixes image for setup template ${1} and tag ${lFixesTag}..."
 
   local lOutputDir="${2:-/tmp/images/fixes}"
   local lFixesDir="${lOutputDir}/${1}/${lFixesTag}"
@@ -640,16 +653,16 @@ generateFixesImageFromTemplate() {
   local lPlatformString="${4:-LNXAMD64}"
 
   if [ -f "${lFixesImageFile}" ]; then
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fixes image for template ${1} and tag ${lFixesTag} already exists, nothing to do."
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fixes image for template ${1} and tag ${lFixesTag} already exists, nothing to do."
     return 0
   fi
 
   local lUpdMgrHome="${5:-/tmp/upd-mgr-v11}"
   if [ ! -d "${lUpdMgrHome}/bin" ]; then
-    logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Home does not contain a UPD_MGR installation, trying to bootstrap now..."
+    pu_log_w "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Home does not contain a UPD_MGR installation, trying to bootstrap now..."
     local lUpdMgrBootstrapBin="${6:-/tmp/upd-mgr-bootstrap.bin}"
     if [ ! -f "${lUpdMgrBootstrapBin}" ]; then
-      logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Bootstrap binary not found, trying to obtain the default one..."
+      pu_log_w "[setupFunctions.sh:generateFixesImageFromTemplate()] - UPD_MGR Bootstrap binary not found, trying to obtain the default one..."
       assureDefaultUpdMgrBootstrap "${lUpdMgrBootstrapBin}" || return $?
       # Parameters - bootstrapUpdMgr
       # $1 - Update Manager Bootstrap file
@@ -661,14 +674,14 @@ generateFixesImageFromTemplate() {
   fi
 
   if [ -f "${lPermanentInventoryFile}" ]; then
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} already exists, skipping creation."
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} already exists, skipping creation."
   else
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} does not exists, creating now."
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} does not exists, creating now."
 
     huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
-      logE "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript not found, cannot continue"
+      pu_log_e "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript not found, cannot continue"
       return 2
     fi
 
@@ -679,11 +692,11 @@ generateFixesImageFromTemplate() {
     if [ "${lUseLatest}" = "NO" ]; then
       lProductsListFile="ProductsVersionedList.txt"
     fi
-    
+
     huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
-      logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+      pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
       return 2
     fi
 
@@ -702,9 +715,9 @@ generateFixesImageFromTemplate() {
   fi
 
   if [ -f "${lPermanentScriptFile}" ]; then
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Permanent script file ${lPermanentScriptFile} already exists, skipping creation..."
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Permanent script file ${lPermanentScriptFile} already exists, skipping creation..."
   else
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Permanent script file ${lPermanentScriptFile} does not exist, creating now..."
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Permanent script file ${lPermanentScriptFile} does not exist, creating now..."
     {
       echo "# Generated"
       echo "scriptConfirm=N"
@@ -723,26 +736,26 @@ generateFixesImageFromTemplate() {
   lCmd="${lCmd} -imagePlatform ${lPlatformString}"
   lCmd="${lCmd} -createImage "'"'"${lFixesImageFile}"'"'
   lCmd="${lCmd} -empowerUser ${WMUI_EMPOWER_USER}"
-  logD "SUM command to execute: ${lCmd} -empowerPass ***"
+  pu_log_d "SUM command to execute: ${lCmd} -empowerPass ***"
   lCmd="${lCmd} -empowerPass '${WMUI_EMPOWER_PASSWORD}'"
 
   local crtDir
   crtDir=$(pwd)
 
   cd "${lUpdMgrHome}/bin" || return 3
-  
-  controlledExec "${lCmd}" "Create-fixes-image-for-template-$(strSubstPOSIX "$1" "/" "-")-tag-${lFixesTag}"
+
+  pu_audited_exec "${lCmd}" "Create-fixes-image-for-template-$(pu_str_substitute "$1" "/" "-")-tag-${lFixesTag}"
   local lResultFixCreation=$?
 
   if [ ${lResultFixCreation} -ne 0 ]; then
-    logW "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fix image creation for template ${1} failed with code ${lResultFixCreation}! Saving troubleshooting information into the destination folder"
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Archiving destination folder results, which are partial at best..."
+    pu_log_w "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fix image creation for template ${1} failed with code ${lResultFixCreation}! Saving troubleshooting information into the destination folder"
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Archiving destination folder results, which are partial at best..."
     cd "${lFixesDir}" || return 1
     tar czf "dump.tgz" ./* --remove-files
     mkdir -p "${lFixesDir}/$d"
     mv "dump.tgz" "${lFixesDir}/$d"/
     cd "${lUpdMgrHome}" || return 1
-    logD "[setupFunctions.sh:generateFixesImageFromTemplate()] - Listing all log files produced by Update Manager"
+    pu_log_d "[setupFunctions.sh:generateFixesImageFromTemplate()] - Listing all log files produced by Update Manager"
     find . -type f -name "*.log"
 
     # ensure the password is not in the logs before sending them to archiving
@@ -751,13 +764,13 @@ generateFixesImageFromTemplate() {
     unset cmd
 
     find . -type f -regex '\(.*\.log\|.*\.log\.[0-9]*\)' -print0 | xargs -0 tar cfvz "${lFixesDir}/$d/sum_logs.tgz"
-    logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Dump complete"
+    pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Dump complete"
     cd "${crtDir}" || return 4
     return 3
   fi
 
   cd "${crtDir}" || return 5
-  logI "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fix image creation for template ${1} finished successfully"
+  pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Fix image creation for template ${1} finished successfully"
 }
 
 # Parameters
@@ -774,17 +787,17 @@ generateProductsImageFromTemplate() {
 
   local lDebugOn="${WMUI_DEBUG_ON:-0}"
 
-  logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Addressing products image for setup template ${1}..."
+  pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Addressing products image for setup template ${1}..."
   local lInstallerBin="${2:-/tmp/installer.bin}"
   if [ ! -f "${lInstallerBin}" ]; then
-    logE "[setupFunctions.sh:generateProductsImageFromTemplate()] - Installer file ${lInstallerBin} not found, attempting to use the default one..."
+    pu_log_e "[setupFunctions.sh:generateProductsImageFromTemplate()] - Installer file ${lInstallerBin} not found, attempting to use the default one..."
     assureDefaultInstaller "${lInstallerBin}" || return 1
   fi
   local lProductImageOutputDir="${3:-/tmp/images/product}"
   local lProductsImageFile="${lProductImageOutputDir}/${1}/products.zip"
 
   if [ -f "${lProductsImageFile}" ]; then
-    logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Products image for template ${1} already exists, nothing to do."
+    pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Products image for template ${1} already exists, nothing to do."
     return 0
   fi
 
@@ -792,9 +805,9 @@ generateProductsImageFromTemplate() {
 
   local lPermanentScriptFile="${lProductImageOutputDir}/${1}/createProductImage.wmscript"
   if [ -f "${lPermanentScriptFile}" ]; then
-    logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file already present... Using the existing one."
+    pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file already present... Using the existing one."
   else
-    logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file not present, creating now..."
+    pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file not present, creating now..."
     local lPlatformString="${4:-LNXAMD64}"
 
     #Address download server URL
@@ -823,7 +836,7 @@ generateProductsImageFromTemplate() {
     huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
-      logE "[setupFunctions.sh:generateProductsImageFromTemplate()] - Template script ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript cannot be recovered, cannot continue"
+      pu_log_e "[setupFunctions.sh:generateProductsImageFromTemplate()] - Template script ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript cannot be recovered, cannot continue"
       return 1
     fi
 
@@ -834,18 +847,18 @@ generateProductsImageFromTemplate() {
     if [ "${lUseLatest}" == "NO" ]; then
       lProductsListFile="ProductsVersionedList.txt"
     fi
-    
+
     huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
-      logE "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
+      pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
       return 2
     fi
 
     local lProductsCsv
     lProductsCsv=$(linesFileToCsvString "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}")
 
-    logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating permanent product image creation script from template file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript "
+    pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating permanent product image creation script from template file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript "
     mkdir -p "${lProductImageOutputDir}/${1}"
     {
       echo "###Generated"
@@ -859,21 +872,21 @@ generateProductsImageFromTemplate() {
       echo "InstallProducts=${lProductsCsv}"
     } >"${lPermanentScriptFile}"
 
-    logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file created"
+    pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Permanent product image creation script file created"
   fi
 
-  logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating the volatile script ..."
+  pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating the volatile script ..."
   local lVolatileScriptFile="${WMUI_TEMP_FS_QUICK}/WMUI/setup/templates/${1}/createProductImage.wmscript"
   mkdir -p "${WMUI_TEMP_FS_QUICK}/WMUI/setup/templates/${1}/"
   cp "${lPermanentScriptFile}" "${lVolatileScriptFile}"
   echo "Username=${WMUI_EMPOWER_USER}" >>"${lVolatileScriptFile}"
   echo "Password=${WMUI_EMPOWER_PASSWORD}" >>"${lVolatileScriptFile}"
-  logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Volatile script created."
+  pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Volatile script created."
 
   ## TODO: check if error management enforcement is needed: what if the grep produced nothing?
   ## TODO: deal with \ escaping in the password. For now avoid using '\' - backslash in the password string
 
-  ## TODO: not space safe, but it shouldn't matter for now 
+  ## TODO: not space safe, but it shouldn't matter for now
   local lCmd="${lInstallerBin} -console -readScript ${lVolatileScriptFile}"
   if [ "${lDebugOn}" -ne 0 ]; then
     lCmd="${lCmd} -debugFile '${lDebugLogFile}' -debugLvl verbose"
@@ -887,11 +900,11 @@ generateProductsImageFromTemplate() {
     lCmd="${lCmd} -existingImages \"${WMUI_TEMP_FS_QUICK}/productsImagesList.txt\""
   fi
 
-  logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating the product image ${lProductsImageFile}... This may take some time..."
-  logD "[setupFunctions.sh:generateProductsImageFromTemplate()] - Command is ${lCmd}"
-  controlledExec "${lCmd}" "Create-products-image-for-template-$(strSubstPOSIX "$1" "/" "-")"
+  pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Creating the product image ${lProductsImageFile}... This may take some time..."
+  pu_log_d "[setupFunctions.sh:generateProductsImageFromTemplate()] - Command is ${lCmd}"
+  pu_audited_exec "${lCmd}" "Create-products-image-for-template-$(pu_str_substitute "$1" "/" "-")"
   local lCreateImgResult=$?
-  logI "[setupFunctions.sh:generateProductsImageFromTemplate()] - Image ${lProductsImageFile} creation completed, result: ${lCreateImgResult}"
+  pu_log_i "[setupFunctions.sh:generateProductsImageFromTemplate()] - Image ${lProductsImageFile} creation completed, result: ${lCreateImgResult}"
   rm -f "${lVolatileScriptFile}"
 
   return ${lCreateImgResult}
@@ -904,20 +917,20 @@ checkSetupTemplateBasicPrerequisites() {
 
   # check WMUI_INSTALL_INSTALLER_BIN
   if [ -z "${WMUI_INSTALL_INSTALLER_BIN+x}" ]; then
-    logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_INSTALL_INSTALLER_BIN was not set!"
+    pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_INSTALL_INSTALLER_BIN was not set!"
     errCount=$((errCount+1))
   else
     if [ ! -f "${WMUI_INSTALL_INSTALLER_BIN}" ]; then
-      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN} does not point to a valid file."
+      pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN} does not point to a valid file."
       errCount=$((errCount+1))
     else
-      logI "WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN}"
+      pu_log_i "WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN}"
       if [ ! -x "${WMUI_INSTALL_INSTALLER_BIN}" ]; then
-        logW "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN} point to a file that is not executable. Attempting to chmod now..."
+        pu_log_w "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN} point to a file that is not executable. Attempting to chmod now..."
         chmod u+x "${WMUI_INSTALL_INSTALLER_BIN}"
         local RESULT_chmod=$?
         if [ ! -x "${WMUI_INSTALL_INSTALLER_BIN}" ]; then
-          logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_INSTALL_INSTALLER_BIN} failed! Command return code was ${RESULT_chmod}"
+          pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_INSTALL_INSTALLER_BIN} failed! Command return code was ${RESULT_chmod}"
           errCount=$((errCount+1))
         fi
       fi
@@ -926,38 +939,38 @@ checkSetupTemplateBasicPrerequisites() {
 
   # check WMUI_INSTALL_IMAGE_FILE
   if [ -z "${WMUI_INSTALL_IMAGE_FILE+x}" ]; then
-    logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_INSTALL_IMAGE_FILE was not set!"
+    pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_INSTALL_IMAGE_FILE was not set!"
     errCount=$((errCount+1))
   else
     if [ ! -f "${WMUI_INSTALL_IMAGE_FILE}" ]; then
-      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE} does not point to a valid file."
+      pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE} does not point to a valid file."
       errCount=$((errCount+1))
     else
-      logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE}"
+      pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE}"
     fi
   fi
 
-  logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN}"
-  logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE}"
-  logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_AVAILABLE=${WMUI_PATCH_AVAILABLE}"
+  pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_INSTALLER_BIN=${WMUI_INSTALL_INSTALLER_BIN}"
+  pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_INSTALL_IMAGE_FILE=${WMUI_INSTALL_IMAGE_FILE}"
+  pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_AVAILABLE=${WMUI_PATCH_AVAILABLE}"
 
   if [ "${WMUI_PATCH_AVAILABLE}" -ne 0 ]; then
     # check WMUI_INSTALL_IMAGE_FILE
     if [ -z "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN+x}" ]; then
-      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN was not set!"
+      pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN was not set!"
       errCount=$((errCount+1))
     else
       if [ ! -f "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
-        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - File declared in the variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} does not exist!"
+        pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - File declared in the variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} does not exist!"
         errCount=$((errCount+1))
       else
-        logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
+        pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
         if [ ! -x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
-          logW "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} file exists, but is not executable. Attempting to chmod now..."
+          pu_log_w "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} file exists, but is not executable. Attempting to chmod now..."
           chmod u+x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
           local RESULT_chmod=$?
           if [ ! -x "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" ]; then
-            logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} Failed! The command exit code was ${RESULT_chmod}."
+            pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - chmod u+x ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN} Failed! The command exit code was ${RESULT_chmod}."
             errCount=$((errCount+1))
           fi
         fi
@@ -965,21 +978,21 @@ checkSetupTemplateBasicPrerequisites() {
     fi
 
     if [ -z "${WMUI_PATCH_FIXES_IMAGE_FILE+x}" ]; then
-      logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_FIXES_IMAGE_FILE was not set!"
+      pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Variable WMUI_PATCH_FIXES_IMAGE_FILE was not set!"
       errCount=$((errCount+1))
     else
       if [ ! -f "${WMUI_PATCH_FIXES_IMAGE_FILE}" ]; then
-        logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_FIXES_IMAGE_FILE=${WMUI_PATCH_FIXES_IMAGE_FILE} does not point to a valid file."
+        pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - Declared variable WMUI_PATCH_FIXES_IMAGE_FILE=${WMUI_PATCH_FIXES_IMAGE_FILE} does not point to a valid file."
         errCount=$((errCount+1))
       else
-        logI "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_FIXES_IMAGE_FILE=${WMUI_PATCH_FIXES_IMAGE_FILE}"
+        pu_log_i "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - WMUI_PATCH_FIXES_IMAGE_FILE=${WMUI_PATCH_FIXES_IMAGE_FILE}"
       fi
     fi
 
   fi
 
   if [ $errCount -ne 0 ]; then
-    logE "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - $errCount errors found! Cannot continue!"
+    pu_log_e "[setupFunctions.sh:checkSetupTemplateBasicPrerequisites()] - $errCount errors found! Cannot continue!"
     return 100
   fi
 }
@@ -1003,13 +1016,13 @@ generateInventoryFileFromProductsList() {
 
   # Check required parameters
   if [ -z "$inputFile" ] || [ -z "$outputFile" ]; then
-    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Both input file and output file are required"
+    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Both input file and output file are required"
     return 1
   fi
 
   # Check if input file exists
   if [ ! -f "$inputFile" ]; then
-    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Input file '$inputFile' does not exist"
+    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Input file '$inputFile' does not exist"
     return 2
   fi
 
@@ -1018,7 +1031,7 @@ generateInventoryFileFromProductsList() {
   productLines=$(grep -v '^[[:space:]]*$' "$inputFile")
 
   if [ -z "$productLines" ]; then
-    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products found in file '$inputFile'"
+    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products found in file '$inputFile'"
     return 3
   fi
 
@@ -1026,7 +1039,7 @@ generateInventoryFileFromProductsList() {
   local tempDir
   tempDir=$(mktemp -d)
   local productsFile="$tempDir/products.tmp"
-  
+
   # Cleanup function
   cleanup() {
     rm -rf "$tempDir"
@@ -1043,21 +1056,21 @@ generateInventoryFileFromProductsList() {
     local versionPart="${remaining%%/*}"; remaining="${remaining#*/}"
     local part4="${remaining%%/*}"; remaining="${remaining#*/}"
     local productCode="$remaining"
-    
+
     if [ -n "$productCode" ] && [ -n "$versionPart" ]; then
       # Clean up product_code (remove any trailing whitespace or newlines)
       productCode=$(printf '%s' "$productCode" | tr -d '\n\r' | sed 's/[[:space:]]*$//')
-      
+
       # Extract version from format like "PRODUCT_11.1.0.0.LATEST"
       # Use sed to extract version pattern
       local productVersion
       productVersion=$(echo "$versionPart" | sed -n 's/.*_\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\..*$/\1/p')
-      
+
       # If version extraction failed, use default
       if [ -z "$productVersion" ]; then
         productVersion="$sumVersionString"
       fi
-      
+
       # Store product code and version (using unique keys)
       echo "$productCode:$productVersion" >> "$productsFile"
     fi
@@ -1065,7 +1078,7 @@ generateInventoryFileFromProductsList() {
 
   # Check if any products were processed
   if [ ! -f "$productsFile" ] || [ ! -s "$productsFile" ]; then
-    logE "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products could be parsed from file '$inputFile'"
+    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products could be parsed from file '$inputFile'"
     cleanup
     return 4
   fi
@@ -1080,7 +1093,7 @@ generateInventoryFileFromProductsList() {
   {
     echo "{"
     echo "    \"installedProducts\": ["
-    
+
     # Process unique products and generate JSON entries
     sort -u "$productsFile" | {
       local first=true
@@ -1098,7 +1111,7 @@ generateInventoryFileFromProductsList() {
       done
       echo ""
     }
-    
+
     echo "    ],"
     echo "    \"installedFixes\": [],"
     echo "    \"installedSupportPatches\": [],"
@@ -1112,7 +1125,7 @@ generateInventoryFileFromProductsList() {
   } > "$outputFile"
 
   cleanup
-  logI "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Successfully generated inventory file: $outputFile"
+  pu_log_i "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Successfully generated inventory file: $outputFile"
   return 0
 }
 
@@ -1120,8 +1133,8 @@ setupFunctionsSourced(){
   return 0
 }
 
-logI "[setupFunctions.sh] - Setup Functions sourced"
-  
+pu_log_i "[setupFunctions.sh] - Setup Functions sourced"
+
 
 # Parameters - mergeProductLists
 # $1 - Space-separated list of template IDs (e.g., "DBC/1101/full APIGateway/1101/cds-e2e-postgres")
@@ -1133,12 +1146,12 @@ logI "[setupFunctions.sh] - Setup Functions sourced"
 ## Note this function and its unit tests have been created by Project Bob
 mergeProductLists() {
   if [ -z "${1}" ]; then
-    logE "[setupFunctions.sh:mergeProductLists()] - Template list is required (parameter 1)"
+    pu_log_e "[setupFunctions.sh:mergeProductLists()] - Template list is required (parameter 1)"
     return 1
   fi
 
   if [ -z "${2}" ]; then
-    logE "[setupFunctions.sh:mergeProductLists()] - Output label is required (parameter 2)"
+    pu_log_e "[setupFunctions.sh:mergeProductLists()] - Output label is required (parameter 2)"
     return 2
   fi
 
@@ -1150,15 +1163,15 @@ mergeProductLists() {
 
   # Check if base templates directory exists
   if [ ! -d "${templatesBaseDir}" ]; then
-    logE "[setupFunctions.sh:mergeProductLists()] - Templates base directory not found: ${templatesBaseDir}"
+    pu_log_e "[setupFunctions.sh:mergeProductLists()] - Templates base directory not found: ${templatesBaseDir}"
     return 3
   fi
 
   # Check if destination folder exists, create if not
   if [ ! -d "${destFolder}" ]; then
-    logI "[setupFunctions.sh:mergeProductLists()] - Creating destination folder: ${destFolder}"
+    pu_log_i "[setupFunctions.sh:mergeProductLists()] - Creating destination folder: ${destFolder}"
     mkdir -p "${destFolder}" || {
-      logE "[setupFunctions.sh:mergeProductLists()] - Failed to create destination folder: ${destFolder}"
+      pu_log_e "[setupFunctions.sh:mergeProductLists()] - Failed to create destination folder: ${destFolder}"
       return 4
     }
   fi
@@ -1174,32 +1187,32 @@ mergeProductLists() {
   for templateId in ${templateList}; do
     templateCount=$((templateCount + 1))
     local productListFile="${templatesBaseDir}/${templateId}/ProductsLatestList.txt"
-    
+
     if [ -f "${productListFile}" ]; then
-      logI "[setupFunctions.sh:mergeProductLists()] - Processing template: ${templateId}"
+      pu_log_i "[setupFunctions.sh:mergeProductLists()] - Processing template: ${templateId}"
       cat "${productListFile}" >> "${tempFile}"
       foundCount=$((foundCount + 1))
     else
-      logW "[setupFunctions.sh:mergeProductLists()] - ProductsLatestList.txt not found for template: ${templateId}"
-      logW "[setupFunctions.sh:mergeProductLists()] - Expected at: ${productListFile}"
+      pu_log_w "[setupFunctions.sh:mergeProductLists()] - ProductsLatestList.txt not found for template: ${templateId}"
+      pu_log_w "[setupFunctions.sh:mergeProductLists()] - Expected at: ${productListFile}"
     fi
   done
 
   if [ ${foundCount} -eq 0 ]; then
-    logE "[setupFunctions.sh:mergeProductLists()] - No valid ProductsLatestList.txt files found in any of the ${templateCount} templates"
+    pu_log_e "[setupFunctions.sh:mergeProductLists()] - No valid ProductsLatestList.txt files found in any of the ${templateCount} templates"
     rm -f "${tempFile}"
     return 5
   fi
 
   # Sort, deduplicate, and write to output file
-  logI "[setupFunctions.sh:mergeProductLists()] - Merging ${foundCount} product lists..."
+  pu_log_i "[setupFunctions.sh:mergeProductLists()] - Merging ${foundCount} product lists..."
   sort -u "${tempFile}" > "${outputFile}"
   local lineCount
   lineCount=$(wc -l < "${outputFile}")
-  
+
   # Clean up temporary file
   rm -f "${tempFile}"
 
-  logI "[setupFunctions.sh:mergeProductLists()] - Successfully created ${outputFile} with ${lineCount} unique products"
+  pu_log_i "[setupFunctions.sh:mergeProductLists()] - Successfully created ${outputFile} with ${lineCount} unique products"
   return 0
 }
