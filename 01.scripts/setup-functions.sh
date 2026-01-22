@@ -16,8 +16,10 @@ if [ -z "${__2__audit_session_dir}" ]; then
   exit 202
 fi
 
-# Map PU audit session to WMUI variables for compatibility
-export WMUI_AUDIT_SESSION_DIR="${__2__audit_session_dir}"
+if [ ! -d "${__2__audit_session_dir}" ]; then
+  echo "FATAL: ${__2__audit_session_dir} does not exist, posix utils audit MUST be correctly sourced before using the setup functions!"
+  exit 203
+fi
 
 # Source commonFunctions.sh for WMUI-specific utility functions
 if [ -f "${WMUI_CACHE_HOME}/01.scripts/commonFunctions.sh" ]; then
@@ -91,7 +93,7 @@ wmui_install_products() {
   # if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
   #   # preserve in the audit what we are using for installation
   #   # this may contain other passwords, thus do not do this in production
-  #   cp "${tempInstallScript}" "${WMUI_AUDIT_SESSION_DIR}/install_$(date +%s).wmscript"
+  #   cp "${tempInstallScript}" "${__2__audit_session_dir}/install_$(date +%s).wmscript"
   # fi
 
   local installCmd="${1} -readScript \"${tempInstallScript}\" -console"
@@ -101,7 +103,7 @@ wmui_install_products() {
   else
     local installCmd="${installCmd} -scriptErrorInteract no"
   fi
-  local installCmd="${installCmd} -debugFile "'"'"${WMUI_AUDIT_SESSION_DIR}/debugInstall.log"'"'
+  local installCmd="${installCmd} -debugFile "'"'"${__2__audit_session_dir}/debugInstall.log"'"'
   pu_audited_exec "${installCmd}" "product-install"
 
   RESULT_installProducts=$?
@@ -111,10 +113,10 @@ wmui_install_products() {
     pu_log_e "[setupFunctions.sh:installProducts()] - Product installation failed, code ${RESULT_installProducts}"
     pu_log_d "[setupFunctions.sh:installProducts()] - Dumping the install.wmscript file into the session audit folder..."
     if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
-      cp "${tempInstallScript}" "${WMUI_AUDIT_SESSION_DIR}/"
+      cp "${tempInstallScript}" "${__2__audit_session_dir}/"
     fi
     pu_log_e "[setupFunctions.sh:installProducts()] - Looking for APP_ERROR in the debug file..."
-    grep 'APP_ERROR' "${WMUI_AUDIT_SESSION_DIR}/debugInstall.log"
+    grep 'APP_ERROR' "${__2__audit_session_dir}/debugInstall.log"
     pu_log_e "[setupFunctions.sh:installProducts()] - returning code 4"
     return 4
   fi
@@ -258,17 +260,17 @@ removeDiagnoserPatch() {
     pu_log_e "[setupFunctions.sh:removeDiagnoserPatch()] - Support patch removal failed, code ${RESULT_controlledExec}"
     if [ "${WMUI_DEBUG_ON}" ]; then
       pu_log_d "Recovering Update Manager logs for further investigations"
-      mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
-      cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
-      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
-      cp "${tmpScriptFile}" "${WMUI_AUDIT_SESSION_DIR}"/
+      mkdir -p "${__2__audit_session_dir}/UpdateManager"
+      cp -r "${UPD_MGR_HOME}"/logs "${__2__audit_session_dir}"/
+      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${__2__audit_session_dir}"/UpdateManager/
+      cp "${tmpScriptFile}" "${__2__audit_session_dir}"/
     fi
     return 3
   fi
 
   if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
     # if we are debugging, we want to see the generated script
-    cp "${tmpScriptFile}" "${WMUI_AUDIT_SESSION_DIR}/fixes.D.${d}.wmscript.txt"
+    cp "${tmpScriptFile}" "${__2__audit_session_dir}/fixes.D.${d}.wmscript.txt"
   fi
 
   rm -f "${tmpScriptFile}"
@@ -331,17 +333,17 @@ patchInstallation() {
     pu_log_e "[setupFunctions.sh:patchInstallation()] - Patch failed, code ${RESULT_controlledExec}"
     if [ "${WMUI_DEBUG_ON}" ]; then
       pu_log_d "[setupFunctions.sh:patchInstallation()] - Recovering Update Manager logs for further investigations"
-      mkdir -p "${WMUI_AUDIT_SESSION_DIR}/UpdateManager"
-      cp -r "${UPD_MGR_HOME}"/logs "${WMUI_AUDIT_SESSION_DIR}"/
-      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${WMUI_AUDIT_SESSION_DIR}"/UpdateManager/
-      cp "${fixesScriptFile}" "${WMUI_AUDIT_SESSION_DIR}"/
+      mkdir -p "${__2__audit_session_dir}/UpdateManager"
+      cp -r "${UPD_MGR_HOME}"/logs "${__2__audit_session_dir}"/
+      cp -r "${UPD_MGR_HOME}"/UpdateManager/logs "${__2__audit_session_dir}"/UpdateManager/
+      cp "${fixesScriptFile}" "${__2__audit_session_dir}"/
     fi
     return 2
   fi
 
   if [ "${WMUI_DEBUG_ON}" -ne 0 ]; then
     # if we are debugging, we want to see the generated script
-    cp "${fixesScriptFile}" "${WMUI_AUDIT_SESSION_DIR}/fixes.${d}.wmscript.txt"
+    cp "${fixesScriptFile}" "${__2__audit_session_dir}/fixes.${d}.wmscript.txt"
   fi
 
   rm -f "${fixesScriptFile}"
@@ -467,7 +469,7 @@ setupProductsAndFixes() {
 applySetupTemplate() {
   # TODO: render checkPrerequisites.sh optional
   pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Applying Setup Template ${1}"
-  huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript" || return 1
+  wmui_hunt_for_file "02.templates/01.setup/${1}" "template.wmscript" || return 1
 
   # Hunt for products list files and create enhanced template
   local useLatest="${2:-YES}"
@@ -479,7 +481,7 @@ applySetupTemplate() {
     productsListFile="ProductsLatestList.txt"
   fi
 
-  huntForWmuiFile "02.templates/01.setup/${1}" "${productsListFile}" || return 2
+  wmui_hunt_for_file "02.templates/01.setup/${1}" "${productsListFile}" || return 2
 
   if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" ]; then
     pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
@@ -489,13 +491,13 @@ applySetupTemplate() {
   # Create temporary enhanced template with InstallProducts line
   local d
   d=$(date +%Y-%m-%dT%H.%M.%S_%3N)
-  local tempEnhancedTemplate="${WMUI_AUDIT_SESSION_DIR}/template_enhanced_${d}.wmscript"
+  local tempEnhancedTemplate="${__2__audit_session_dir}/template_enhanced_${d}.wmscript"
 
   # Copy original template
   cp "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" "${tempEnhancedTemplate}"
 
   # Create sorted CSV from products list and append to template
-  local productsListSorted="${WMUI_AUDIT_SESSION_DIR}/products_sorted_${d}.tmp"
+  local productsListSorted="${__2__audit_session_dir}/products_sorted_${d}.tmp"
   sort "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}" > "${productsListSorted}"
   local productsCsv
   productsCsv=$(linesFileToCsvString "${productsListSorted}")
@@ -514,7 +516,7 @@ applySetupTemplate() {
 
   # environment defaults for setup
   pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Sourcing variable values for template ${1} ..."
-  huntForWmuiFile "02.templates/01.setup/${1}" "setEnvDefaults.sh"
+  wmui_hunt_for_file "02.templates/01.setup/${1}" "setEnvDefaults.sh"
   if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh" ]; then
     pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Template ${1} does not have any default variable values, file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/setEnvDefaults.sh has not been provided."
   else
@@ -532,7 +534,7 @@ applySetupTemplate() {
   fi
 
   ### Eventually check prerequisites
-  huntForWmuiFile "02.templates/01.setup/${1}" "checkPrerequisites.sh" || pu_log_i
+  wmui_hunt_for_file "02.templates/01.setup/${1}" "checkPrerequisites.sh" || pu_log_i
   if [ -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" ]; then
     pu_log_i "[setupFunctions.sh:applySetupTemplate()] - Checking installation prerequisites for template ${1} ..."
     chmod u+x "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/checkPrerequisites.sh" >/dev/null
@@ -560,70 +562,70 @@ applySetupTemplate() {
   fi
 }
 
-# Parameters - assureDownloadableFile
-# $1 - Target File: a local path of the file to be assured
-# $2 - URL from where to get
-# $3 - SHA256 sum of the file (Use before reuse: for now we only need sha256sum)
-# $4 - Optional (future TODO - BA user for the URL)
-# $5 - Optional (future TODO - BA pass for the URL)
-assureDownloadableFile() {
-  if [ ! -f "${1}" ]; then
-    pu_log_i "[setupFunctions.sh:assureDownloadableFile()] - File ${1} does not exist, attempting download from ${2}"
-    if ! which sha256sum > /dev/null; then
-      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find sha256sum"
-      return 5
-    fi
+# # Parameters - assureDownloadableFile
+# # $1 - Target File: a local path of the file to be assured
+# # $2 - URL from where to get
+# # $3 - SHA256 sum of the file (Use before reuse: for now we only need sha256sum)
+# # $4 - Optional (future TODO - BA user for the URL)
+# # $5 - Optional (future TODO - BA pass for the URL)
+# assureDownloadableFile() {
+#   if [ ! -f "${1}" ]; then
+#     pu_log_i "[setupFunctions.sh:assureDownloadableFile()] - File ${1} does not exist, attempting download from ${2}"
+#     if ! which sha256sum > /dev/null; then
+#       pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find sha256sum"
+#       return 5
+#     fi
 
-    if ! which curl > /dev/null; then
-      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find curl"
-      return 1
-    fi
+#     if ! which curl > /dev/null; then
+#       pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot find curl"
+#       return 1
+#     fi
 
-    if ! curl "${2}" -o "${1}"; then
-      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot download from ${2}"
-      return 2
-    fi
+#     if ! curl "${2}" -o "${1}"; then
+#       pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - Cannot download from ${2}"
+#       return 2
+#     fi
 
-    if [ ! -f "${1}" ]; then
-      pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - File ${1} waa not downloaded even if curl command succeded"
-      return 3
-    fi
-  fi
-  if ! echo "${3}  ${1}" | sha256sum -c -; then
-    pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum check for file ${1} failed"
-    pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum expected was ${3}, actual is"
-    sha256sum "${1}"
-    return 4
-  fi
-}
+#     if [ ! -f "${1}" ]; then
+#       pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - File ${1} waa not downloaded even if curl command succeded"
+#       return 3
+#     fi
+#   fi
+#   if ! echo "${3}  ${1}" | sha256sum -c -; then
+#     pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum check for file ${1} failed"
+#     pu_log_e "[setupFunctions.sh:assureDownloadableFile()] - sha256sum expected was ${3}, actual is"
+#     sha256sum "${1}"
+#     return 4
+#   fi
+# }
 
-# Parameters
-# $1 - OPTIONAL installer binary location, defaulted to ${WMUI_INSTALL_INSTALLER_BIN}, which is also defaulted to /tmp/installer.bin
-assureDefaultInstaller() {
-  local installerUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin"
-  local installerSha256Sum="07ecdff4efe4036cb5ef6744e1a60b0a7e92befed1a00e83b5afe9cdfd6da8d3"
-  WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
-  local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
-  if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
-    pu_log_e "[setupFunctions.sh:assureDefaultInstaller()] - Cannot assure default installer!"
-    return 1
-  fi
-  chmod u+x "${installerBin}"
-}
+# # Parameters
+# # $1 - OPTIONAL installer binary location, defaulted to ${WMUI_INSTALL_INSTALLER_BIN}, which is also defaulted to /tmp/installer.bin
+# assureDefaultInstaller() {
+#   local installerUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin"
+#   local installerSha256Sum="07ecdff4efe4036cb5ef6744e1a60b0a7e92befed1a00e83b5afe9cdfd6da8d3"
+#   WMUI_INSTALL_INSTALLER_BIN="${WMUI_INSTALL_INSTALLER_BIN:-/tmp/installer.bin}"
+#   local installerBin="${1:-$WMUI_INSTALL_INSTALLER_BIN}"
+#   if ! assureDownloadableFile "${installerBin}" "${installerUrl}" "${installerSha256Sum}"; then
+#     pu_log_e "[setupFunctions.sh:assureDefaultInstaller()] - Cannot assure default installer!"
+#     return 1
+#   fi
+#   chmod u+x "${installerBin}"
+# }
 
-# Parameters
-# $1 - OPTIONAL UPD_MGR bootstrap binary location, defaulted to ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}, which is also defaulted to /tmp/upd-mgr-bootstrap.bin
-assureDefaultUpdMgrBootstrap() {
-  local updMgrBootstrapUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin"
-  local updMgrBootstrapSha256Sum="a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55"
-  WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
-  local lUpdMgrBootstrap="${1:-$WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
-  if ! assureDownloadableFile "${lUpdMgrBootstrap}" "${updMgrBootstrapUrl}" "${updMgrBootstrapSha256Sum}"; then
-    pu_log_e "[setupFunctions.sh:assureDefaultUpdMgrBootstrap()] - Cannot assure default sum bootstrap!"
-    return 1
-  fi
-  chmod u+x "${lUpdMgrBootstrap}"
-}
+# # Parameters
+# # $1 - OPTIONAL UPD_MGR bootstrap binary location, defaulted to ${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}, which is also defaulted to /tmp/upd-mgr-bootstrap.bin
+# assureDefaultUpdMgrBootstrap() {
+#   local updMgrBootstrapUrl="https://delivery04.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin"
+#   local updMgrBootstrapSha256Sum="a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55"
+#   WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN:-/tmp/upd-mgr-bootstrap.bin}"
+#   local lUpdMgrBootstrap="${1:-$WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}"
+#   if ! assureDownloadableFile "${lUpdMgrBootstrap}" "${updMgrBootstrapUrl}" "${updMgrBootstrapSha256Sum}"; then
+#     pu_log_e "[setupFunctions.sh:assureDefaultUpdMgrBootstrap()] - Cannot assure default sum bootstrap!"
+#     return 1
+#   fi
+#   chmod u+x "${lUpdMgrBootstrap}"
+# }
 
 # TODO: generalize
 # Parameters
@@ -678,7 +680,7 @@ generateFixesImageFromTemplate() {
   else
     pu_log_i "[setupFunctions.sh:generateFixesImageFromTemplate()] - Inventory file ${lPermanentInventoryFile} does not exists, creating now."
 
-    huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
+    wmui_hunt_for_file "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
       pu_log_e "[setupFunctions.sh:generateFixesImageFromTemplate()] - Required file ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript not found, cannot continue"
@@ -693,7 +695,7 @@ generateFixesImageFromTemplate() {
       lProductsListFile="ProductsVersionedList.txt"
     fi
 
-    huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
+    wmui_hunt_for_file "02.templates/01.setup/${1}" "${lProductsListFile}"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
       pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
@@ -833,7 +835,7 @@ generateProductsImageFromTemplate() {
       ;;
     esac
 
-    huntForWmuiFile "02.templates/01.setup/${1}" "template.wmscript"
+    wmui_hunt_for_file "02.templates/01.setup/${1}" "template.wmscript"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript" ]; then
       pu_log_e "[setupFunctions.sh:generateProductsImageFromTemplate()] - Template script ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/template.wmscript cannot be recovered, cannot continue"
@@ -848,7 +850,7 @@ generateProductsImageFromTemplate() {
       lProductsListFile="ProductsVersionedList.txt"
     fi
 
-    huntForWmuiFile "02.templates/01.setup/${1}" "${lProductsListFile}"
+    wmui_hunt_for_file "02.templates/01.setup/${1}" "${lProductsListFile}"
 
     if [ ! -f "${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${lProductsListFile}" ]; then
       pu_log_e "[setupFunctions.sh:applySetupTemplate()] - Products list file not found: ${WMUI_CACHE_HOME}/02.templates/01.setup/${1}/${productsListFile}"
@@ -997,137 +999,137 @@ checkSetupTemplateBasicPrerequisites() {
   fi
 }
 
-# Parameters - generateInventoryFileFromProductsList
-# $1 - input file path (products list file)
-# $2 - output file path (JSON inventory file)
-# $3 - OPTIONAL: sum version string, defaults to "10.5.0"
-# $4 - OPTIONAL: platform string, defaults to "LNXAMD64"
-# $5 - OPTIONAL: WMUI version string, defaults to "1005"
-# $6 - OPTIONAL: update manager version, defaults to "11.0.0.0000-0117"
-# $7 - OPTIONAL: platform group string, defaults to "\"UNX-ANY\",\"LNX-ANY\""
-generateInventoryFileFromProductsList() {
-  local inputFile="${1}"
-  local outputFile="${2}"
-  local sumVersionString="${3:-10.5.0}"
-  local sumPlatformString="${4:-LNXAMD64}"
-  local wmuiVersionString="${5:-1005}"
-  local updateManagerVersion="${6:-11.0.0.0000-0117}"
-  local sumPlatformGroupString="${7:-\"UNX-ANY\",\"LNX-ANY\"}"
+# # Parameters - generateInventoryFileFromProductsList
+# # $1 - input file path (products list file)
+# # $2 - output file path (JSON inventory file)
+# # $3 - OPTIONAL: sum version string, defaults to "10.5.0"
+# # $4 - OPTIONAL: platform string, defaults to "LNXAMD64"
+# # $5 - OPTIONAL: WMUI version string, defaults to "1005"
+# # $6 - OPTIONAL: update manager version, defaults to "11.0.0.0000-0117"
+# # $7 - OPTIONAL: platform group string, defaults to "\"UNX-ANY\",\"LNX-ANY\""
+# generateInventoryFileFromProductsList() {
+#   local inputFile="${1}"
+#   local outputFile="${2}"
+#   local sumVersionString="${3:-10.5.0}"
+#   local sumPlatformString="${4:-LNXAMD64}"
+#   local wmuiVersionString="${5:-1005}"
+#   local updateManagerVersion="${6:-11.0.0.0000-0117}"
+#   local sumPlatformGroupString="${7:-\"UNX-ANY\",\"LNX-ANY\"}"
 
-  # Check required parameters
-  if [ -z "$inputFile" ] || [ -z "$outputFile" ]; then
-    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Both input file and output file are required"
-    return 1
-  fi
+#   # Check required parameters
+#   if [ -z "$inputFile" ] || [ -z "$outputFile" ]; then
+#     pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Both input file and output file are required"
+#     return 1
+#   fi
 
-  # Check if input file exists
-  if [ ! -f "$inputFile" ]; then
-    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Input file '$inputFile' does not exist"
-    return 2
-  fi
+#   # Check if input file exists
+#   if [ ! -f "$inputFile" ]; then
+#     pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Input file '$inputFile' does not exist"
+#     return 2
+#   fi
 
-  # Read all non-empty lines from the products list file
-  local productLines
-  productLines=$(grep -v '^[[:space:]]*$' "$inputFile")
+#   # Read all non-empty lines from the products list file
+#   local productLines
+#   productLines=$(grep -v '^[[:space:]]*$' "$inputFile")
 
-  if [ -z "$productLines" ]; then
-    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products found in file '$inputFile'"
-    return 3
-  fi
+#   if [ -z "$productLines" ]; then
+#     pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products found in file '$inputFile'"
+#     return 3
+#   fi
 
-  # Create temporary files for processing
-  local tempDir
-  tempDir=$(mktemp -d)
-  local productsFile="$tempDir/products.tmp"
+#   # Create temporary files for processing
+#   local tempDir
+#   tempDir=$(mktemp -d)
+#   local productsFile="$tempDir/products.tmp"
 
-  # Cleanup function
-  cleanup() {
-    rm -rf "$tempDir"
-  }
-  trap cleanup EXIT
+#   # Cleanup function
+#   cleanup() {
+#     rm -rf "$tempDir"
+#   }
+#   trap cleanup EXIT
 
-  # Process each product line
-  echo "$productLines" | while IFS= read -r productLine; do
-    # Parse format: e2ei/11/PRODUCT_VERSION.LATEST/Category/ProductCode
-    # Use parameter expansion to split the path
-    local remaining="$productLine"
-    local part1="${remaining%%/*}"; remaining="${remaining#*/}"
-    local part2="${remaining%%/*}"; remaining="${remaining#*/}"
-    local versionPart="${remaining%%/*}"; remaining="${remaining#*/}"
-    local part4="${remaining%%/*}"; remaining="${remaining#*/}"
-    local productCode="$remaining"
+#   # Process each product line
+#   echo "$productLines" | while IFS= read -r productLine; do
+#     # Parse format: e2ei/11/PRODUCT_VERSION.LATEST/Category/ProductCode
+#     # Use parameter expansion to split the path
+#     local remaining="$productLine"
+#     local part1="${remaining%%/*}"; remaining="${remaining#*/}"
+#     local part2="${remaining%%/*}"; remaining="${remaining#*/}"
+#     local versionPart="${remaining%%/*}"; remaining="${remaining#*/}"
+#     local part4="${remaining%%/*}"; remaining="${remaining#*/}"
+#     local productCode="$remaining"
 
-    if [ -n "$productCode" ] && [ -n "$versionPart" ]; then
-      # Clean up product_code (remove any trailing whitespace or newlines)
-      productCode=$(printf '%s' "$productCode" | tr -d '\n\r' | sed 's/[[:space:]]*$//')
+#     if [ -n "$productCode" ] && [ -n "$versionPart" ]; then
+#       # Clean up product_code (remove any trailing whitespace or newlines)
+#       productCode=$(printf '%s' "$productCode" | tr -d '\n\r' | sed 's/[[:space:]]*$//')
 
-      # Extract version from format like "PRODUCT_11.1.0.0.LATEST"
-      # Use sed to extract version pattern
-      local productVersion
-      productVersion=$(echo "$versionPart" | sed -n 's/.*_\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\..*$/\1/p')
+#       # Extract version from format like "PRODUCT_11.1.0.0.LATEST"
+#       # Use sed to extract version pattern
+#       local productVersion
+#       productVersion=$(echo "$versionPart" | sed -n 's/.*_\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\..*$/\1/p')
 
-      # If version extraction failed, use default
-      if [ -z "$productVersion" ]; then
-        productVersion="$sumVersionString"
-      fi
+#       # If version extraction failed, use default
+#       if [ -z "$productVersion" ]; then
+#         productVersion="$sumVersionString"
+#       fi
 
-      # Store product code and version (using unique keys)
-      echo "$productCode:$productVersion" >> "$productsFile"
-    fi
-  done
+#       # Store product code and version (using unique keys)
+#       echo "$productCode:$productVersion" >> "$productsFile"
+#     fi
+#   done
 
-  # Check if any products were processed
-  if [ ! -f "$productsFile" ] || [ ! -s "$productsFile" ]; then
-    pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products could be parsed from file '$inputFile'"
-    cleanup
-    return 4
-  fi
+#   # Check if any products were processed
+#   if [ ! -f "$productsFile" ] || [ ! -s "$productsFile" ]; then
+#     pu_log_e "[setupFunctions.sh:generateInventoryFileFromProductsList()] - No products could be parsed from file '$inputFile'"
+#     cleanup
+#     return 4
+#   fi
 
-  # Function to escape JSON strings
-  escape_json() {
-    # Remove any trailing newlines and escape JSON special characters
-    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr -d '\n'
-  }
+#   # Function to escape JSON strings
+#   escape_json() {
+#     # Remove any trailing newlines and escape JSON special characters
+#     printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr -d '\n'
+#   }
 
-  # Generate JSON output
-  {
-    echo "{"
-    echo "    \"installedProducts\": ["
+#   # Generate JSON output
+#   {
+#     echo "{"
+#     echo "    \"installedProducts\": ["
 
-    # Process unique products and generate JSON entries
-    sort -u "$productsFile" | {
-      local first=true
-      while IFS=: read -r productId productVersion; do
-        if [ "$first" = true ]; then
-          first=false
-        else
-          echo ","
-        fi
-        echo "        {"
-        echo "            \"productId\": \"$(escape_json "$productId")\","
-        echo "            \"version\": \"$(escape_json "$productVersion")\","
-        echo "            \"displayName\": \"$(escape_json "$productId")\""
-        printf "        }"
-      done
-      echo ""
-    }
+#     # Process unique products and generate JSON entries
+#     sort -u "$productsFile" | {
+#       local first=true
+#       while IFS=: read -r productId productVersion; do
+#         if [ "$first" = true ]; then
+#           first=false
+#         else
+#           echo ","
+#         fi
+#         echo "        {"
+#         echo "            \"productId\": \"$(escape_json "$productId")\","
+#         echo "            \"version\": \"$(escape_json "$productVersion")\","
+#         echo "            \"displayName\": \"$(escape_json "$productId")\""
+#         printf "        }"
+#       done
+#       echo ""
+#     }
 
-    echo "    ],"
-    echo "    \"installedFixes\": [],"
-    echo "    \"installedSupportPatches\": [],"
-    echo "    \"envVariables\": {"
-    echo "        \"platformGroup\": [$sumPlatformGroupString],"
-    echo "        \"UpdateManagerVersion\": \"$updateManagerVersion\","
-    echo "        \"Hostname\": \"localhost\","
-    echo "        \"platform\": \"$sumPlatformString\""
-    echo "    }"
-    echo "}"
-  } > "$outputFile"
+#     echo "    ],"
+#     echo "    \"installedFixes\": [],"
+#     echo "    \"installedSupportPatches\": [],"
+#     echo "    \"envVariables\": {"
+#     echo "        \"platformGroup\": [$sumPlatformGroupString],"
+#     echo "        \"UpdateManagerVersion\": \"$updateManagerVersion\","
+#     echo "        \"Hostname\": \"localhost\","
+#     echo "        \"platform\": \"$sumPlatformString\""
+#     echo "    }"
+#     echo "}"
+#   } > "$outputFile"
 
-  cleanup
-  pu_log_i "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Successfully generated inventory file: $outputFile"
-  return 0
-}
+#   cleanup
+#   pu_log_i "[setupFunctions.sh:generateInventoryFileFromProductsList()] - Successfully generated inventory file: $outputFile"
+#   return 0
+# }
 
 setupFunctionsSourced(){
   return 0
