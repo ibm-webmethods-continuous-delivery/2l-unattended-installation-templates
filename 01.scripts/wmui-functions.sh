@@ -378,8 +378,8 @@ wmui_generate_products_zip_from_list(){
   mkdir -p "${__wmui_temp_fs_quick}/WMUI/setup/templates/${l_epoch}/"
   cp "${l_img_creation_script}" "${l_ephemeral_script}"
   # TODO: assure credential variables
-  echo "Username=${WMUI_EMPOWER_USER}" >>"${l_ephemeral_script}"
-  echo "Password=${WMUI_EMPOWER_PASSWORD}" >>"${l_ephemeral_script}"
+  echo "Username=${WMUI_DOWNLOAD_USER}" >>"${l_ephemeral_script}"
+  echo "Password=${WMUI_DOWNLOAD_PASSWORD}" >>"${l_ephemeral_script}"
   pu_log_i "WMUI|21| Volatile script created."
 
   ## TODO: check if error management enforcement is needed: what if the grep produced nothing?
@@ -412,7 +412,7 @@ wmui_generate_products_zip_from_list(){
 }
 
 # Function 22 - Generating a products image zip file for a template
-# NOTE: pass download credentials in env variables WMUI_EMPOWER_USER and WMUI_EMPOWER_PASSWORD
+# NOTE: pass download credentials in env variables WMUI_DOWNLOAD_USER and WMUI_DOWNLOAD_PASSWORD
 # NOTE: ${__wmui_temp_fs_quick}/productsImagesList.txt may be created upfront if image caches are available
 wmui_generate_products_zip_from_template() {
   # Parameters
@@ -543,9 +543,9 @@ wmui_generate_fixes_zip_from_list_on_file() {
   l_cmd="${l_cmd} -installDir "'"'"${l_permanent_inventory_file}"'"'
   l_cmd="${l_cmd} -imagePlatform ${l_platform_string}"
   l_cmd="${l_cmd} -createImage "'"'"${l_fixes_image_file}"'"'
-  l_cmd="${l_cmd} -empowerUser ${WMUI_EMPOWER_USER}"
-  pu_log_d "SUM command to execute: ${l_cmd} -empowerPass ***"
-  l_cmd="${l_cmd} -empowerPass '${WMUI_EMPOWER_PASSWORD}'"
+  l_cmd="${l_cmd} -empowerUser ${WMUI_DOWNLOAD_USER}"
+  pu_log_d "webMethods Update Manager command to execute: ${l_cmd} -empowerPass ***"
+  l_cmd="${l_cmd} -empowerPass '${WMUI_DOWNLOAD_PASSWORD}'"
 
   local l_crt_dir
   l_crt_dir=$(pwd)
@@ -567,7 +567,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
     find . -type f -name "*.log"
 
     # ensure the password is not in the logs before sending them to archiving
-    l_cmd="grep -rl '${WMUI_EMPOWER_PASSWORD}' . | xargs sed -i 's/${WMUI_EMPOWER_PASSWORD}/HIDDEN_PASSWORD/g'"
+    l_cmd="grep -rl '${WMUI_DOWNLOAD_PASSWORD}' . | xargs sed -i 's/${WMUI_DOWNLOAD_PASSWORD}/HIDDEN_PASSWORD/g'"
     eval "${l_cmd}"
     unset l_cmd
 
@@ -583,7 +583,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
 }
 
 # Function 27 - Generating a products image zip file for a template
-# NOTE: pass SDC credentials in env variables WMUI_EMPOWER_USER and WMUI_EMPOWER_PASSWORD
+# NOTE: pass SDC credentials in env variables WMUI_DOWNLOAD_USER and WMUI_DOWNLOAD_PASSWORD
 wmui_generate_fixes_zip_from_template() {
   # Parameters
   # $1 -> setup template
@@ -607,7 +607,7 @@ wmui_bootstrap_umgr() {
   # Parameters - wmui_bootstrap_umgr
   # $1 - Update Manager Bootstrap file
   # $2 - Fixes image file, mandatory for offline mode
-  # $3 - OPTIONAL Where to install (SUM Home), default ${__wmui_default_umgr_home}
+  # $3 - OPTIONAL Where to install (webMethods Update Manager Home), default ${__wmui_default_umgr_home}
 
   local l_umgr_bin="${1:-${__wmui_default_umgr_bin}}"
   local l_umgr_home="${3:-${__wmui_default_umgr_home}}"
@@ -898,7 +898,7 @@ wmui_setup_products_and_fixes() {
   # $3 - Patch as well (default: false)
   # $4 - Update Manager Bootstrap file
   # $5 - Fixes Image (this will always happen offline in this framework)
-  # $6 - OPTIONAL Where to install (SUM Home), default ${__wmui_default_umgr_home}
+  # $6 - OPTIONAL Where to install (webMethods Update Manager Home), default ${__wmui_default_umgr_home}
   # $7 - OPTIONAL: debugLevel for installer
 
   local l_patch_available="${3:-false}"
@@ -969,7 +969,7 @@ wmui_setup_products_and_fixes() {
         if [ "${l_patch_available}" = "true" ]; then
           # Parameters - wmui_bootstrap_umgr
           # $1 - Update Manager Bootstrap file
-          # $2 - OPTIONAL Where to install (SUM Home), default ${__wmui_default_umgr_home}
+          # $2 - OPTIONAL Where to install (webMethods Update Manager Home), default ${__wmui_default_umgr_home}
           local l_upd_mgr_home="${6:-${__wmui_default_umgr_home}}"
           wmui_bootstrap_umgr "${4}" "${5}" "${l_upd_mgr_home}"
           local l_result_bootstrap_upd_mgr=$?
@@ -1043,7 +1043,7 @@ wmui_apply_setup_template() {
   local l_products_list_sorted="${__2__audit_session_dir}/products_sorted_${l_d}.tmp"
   sort "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_products_list_file}" > "${l_products_list_sorted}"
   local l_products_csv
-  l_products_csv=$(linesFileToCsvString "${l_products_list_sorted}")
+  l_products_csv=$(pu_lines_to_csv "${l_products_list_sorted}")
   local l_result_lines_file_to_csv_string=$?
 
   if [ ${l_result_lines_file_to_csv_string} -ne 0 ]; then
@@ -1091,6 +1091,7 @@ wmui_apply_setup_template() {
   wmui_setup_products_and_fixes \
     "${WMUI_INSTALL_INSTALLER_BIN}" \
     "${l_temp_enhanced_template}" \
+    "${WMUI_PATCH_AVAILABLE:-false}" \
     "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" \
     "${WMUI_PATCH_FIXES_IMAGE_FILE}" \
     "${WMUI_UPD_MGR_HOME}" \

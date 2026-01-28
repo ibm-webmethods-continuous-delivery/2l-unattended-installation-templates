@@ -1,98 +1,60 @@
-# Scripts for webMethods provisioning contexts
+# WMUI Scripts - webMethods Unattended Installation
 
-## General Rules applied
+## Overview
 
-The project is built so that scripts may be downloaded or injected into linux nodes, either hosts, vms or containers. It is based on the "posix utils" repository in the same IWCD framework.
+This directory contains shell scripts for automated webMethods product installation and configuration. The scripts are designed to be downloaded or injected into Linux nodes (hosts, VMs, or containers) and are based on the [POSIX Shell Utils (PU)](../../2l-posix-shell-utils/) framework.
 
-The scripts themselves have minimal comments to keep them light.
+## Documentation Structure
 
-All files that require parameters are managed with gnu envsusbst. This means that all properties will be sourceable shell files.
+- **[coding-conventions.md](./coding-conventions.md)** - Coding standards and naming conventions
+- **[reference.md](./reference.md)** - Comprehensive function reference with parameters and environment variables
+- **README.md** (this file) - Quick start and overview
 
-### Template variables
+## Quick Start
 
-By convention, the wmscript templates will contain lines such as the following one when dealing with variables. Templates built before this convention are deprecated. Whenever a key contains a point (`.`) it is substituted with underscore (`_`)
+### Prerequisites
+
+1. **POSIX Shell Utils**: Source the PU library before using WMUI functions
+   ```sh
+   . /path/to/2l-posix-shell-utils/code/2.audit.sh
+   . /path/to/wmui-functions.sh
+   ```
+
+2. **Required Tools**:
+   - `envsubst` (from gettext package)
+   - `curl` (for online mode)
+   - Standard POSIX utilities
+
+### Basic Usage
 
 ```sh
-key=${WMUI_WMSCRIPT_Key}
+# Set required environment variables
+export WMUI_INSTALL_INSTALLER_BIN="/tmp/installer.bin"
+export WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN="/tmp/umgr-bootstrap.bin"
+export WMUI_PATCH_FIXES_IMAGE_FILE="/tmp/fixes.zip"
+export WMUI_UPD_MGR_HOME="/opt/wm-umgr"
+export WMUI_DOWNLOAD_USER="your-username"
+export WMUI_DOWNLOAD_PASSWORD="your-password"
+
+# Apply template using latest products (default)
+wmui_apply_setup_template "APIGateway/1101/default"
+
+# Apply template using specific versioned products
+wmui_apply_setup_template "APIGateway/1101/default" "false"
 ```
 
-example
+## Key Concepts
 
-```sh
-InstallDir=${WMUI_WMSCRIPT_InstallDir}
-```
+### Operating Modes
 
-## Important notes
-It is the caller responsibility to:
+The framework supports two operating modes:
 
-- properly cater for env variables substitutions in the provided files.
-- properly prepare url-encoded variables (use the common lib primitives)
+- **Online Mode** (`WMUI_ONLINE_MODE=true`): Downloads files from GitHub repository as needed
+- **Offline Mode** (`WMUI_ONLINE_MODE=false`): Requires all files to be present locally in `WMUI_HOME`
 
-## Exit & Return Codes
+### Template Structure
 
-### Success Code
-By convention all functions must return 0 if successful. Return codes then will be specific to each function
-
-### Return Code Logic
-**Code 0**: Always means success across all functions.
-
-**Codes 1-99**: Function-specific return codes. Each function defines its own semantics for these codes. The same code number can mean different things in different functions (e.g., code 1 means "invalid installer file" in `installProducts()` but "template.wmscript not found" in `applySetupTemplate()`).
-
-**Codes 100+**: Global framework codes with consistent meaning across all functions. These represent framework-level issues that transcend individual function boundaries (e.g., prerequisites not met, environment issues, network failures).
-
-### Global Framework Codes (100+)
-These codes have consistent meaning across all functions:
-
-|Code|Description|
-|-|-|
-|100|Basic prerequisites not met / Expected files missing|
-|101|Environment variables substitution failed|
-|102|Network operation failed (curl, download)|
-|103|Critical setup operation failed|
-|104|Offline mode prerequisites not met|
-
-## Notes
-For the moment everything works with version 10.5 and Update Manager v11. The scripts are also follwoing a "use before reuse" principle, reusability with other versions will be evaluated when the need manifests.
-
-## setupFunctions.sh Overview
-
-The `setupFunctions.sh` module provides a comprehensive framework for automated webMethods product installation and configuration. It handles the complete lifecycle from product installation to patches and post-setup configuration.
-
-### Key Functions
-
-#### Product Installation
-- **`installProducts()`** - Core function that installs webMethods products using installer scripts
-  - Handles environment variable substitution in wmscript templates
-  - Provides detailed logging and error handling
-
-#### Update Manager Operations
-- **`bootstrapUpdMgr()`** - Bootstraps Software AG Update Manager for patch management
-- **`patchUpdMgr()`** - Updates the Update Manager itself using provided images
-- **`patchInstallation()`** - Applies patches to installed products via Update Manager
-- **`removeDiagnoserPatch()`** - Removes specific engineering patches when needed
-
-#### Template Management
-- **`applySetupTemplate()`** - Orchestrates complete setup from template directories
-  - Downloads required files from cache/repository
-  - Sources environment defaults and checks prerequisites
-  - **NEW**: Automatically generates `InstallProducts` line from product lists
-  - Supports `useLatest` parameter (YES/NO) to choose between latest or versioned products
-  - Creates temporary enhanced template and calls `setupProductsAndFixes()`
-- **`setupProductsAndFixes()`** - High-level function combining product install + patching
-
-#### Image Generation (Online Mode)
-- **`generateProductsImageFromTemplate()`** - Creates product images from SDC using templates
-- **`generateFixesImageFromTemplate()`** - Creates fixes images from Empower using product inventories
-
-#### Utility Functions
-- **`assureDownloadableFile()`** - Downloads and validates files using SHA256 checksums
-- **`assureDefaultInstaller()`** - Ensures default webMethods installer is available
-- **`checkSetupTemplateBasicPrerequisites()`** - Validates required environment variables
-- **`checkEmpowerCredentials()`** - Validates Software AG Empower credentials
-
-### Template Structure Requirements
-
-Each setup template in `02.templates/01.setup/` must follow this structure:
+Setup templates follow a standardized structure in `02.templates/01.setup/`:
 
 ```
 <Product>/<Version>/<Variant>/
@@ -105,39 +67,155 @@ Each setup template in `02.templates/01.setup/` must follow this structure:
 
 ### Product List Management
 
-**NEW BEHAVIOR**: The `InstallProducts` property is now generated automatically during installation:
+**IMPORTANT**: The `InstallProducts` property is generated automatically:
 
 - Templates **MUST NOT** contain the `InstallProducts` line in `template.wmscript`
 - Products are read from `ProductsLatestList.txt` (default) or `ProductsVersionedList.txt`
 - Products are sorted alphabetically and converted to comma-separated format
-- Use `useLatest=NO` parameter to use versioned products instead of latest
+- Use second parameter `"false"` to use versioned products instead of latest
 
-### Environment Variables
+### Template Variable Convention
 
-The framework relies on these key environment variables:
+By convention, wmscript templates use environment variables with the `WMUI_WMSCRIPT_` prefix:
 
-- `WMUI_INSTALL_INSTALLER_BIN` - Path to webMethods installer binary
-- `WMUI_INSTALL_IMAGE_FILE` - Path to product installation image
-- `WMUI_PATCH_AVAILABLE` - Whether patches should be applied (0/1)
-- `WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN` - Path to Update Manager bootstrap
-- `WMUI_PATCH_FIXES_IMAGE_FILE` - Path to fixes image file
-- `WMUI_ONLINE_MODE` - Framework online mode (0=offline, 1=online)
-- `WMUI_SDC_ONLINE_MODE` - SDC connection mode (0=offline, 1=online)
+```sh
+key=${WMUI_WMSCRIPT_Key}
+```
 
-### Typical Workflow
+**Rules**:
+- All template variables use `WMUI_WMSCRIPT_` prefix
+- When a key contains a dot (`.`), it is substituted with underscore (`_`)
+
+**Example**:
+```sh
+InstallDir=${WMUI_WMSCRIPT_InstallDir}
+LicenseAgree=${WMUI_WMSCRIPT_LicenseAgree}
+imageFile=${WMUI_WMSCRIPT_imageFile}
+```
+
+**Note**: This convention applies to template files. The rule `key=${WMUI_WMSCRIPT_Key}` is still valid but not directly linked to the functions in wmui-functions.sh—it's a template authoring convention.
+
+## Core Functions
+
+### High-Level Functions
+
+| Function | Purpose | Reference |
+|----------|---------|-----------|
+| `wmui_apply_setup_template` | Apply complete setup template (main entry point) | [Function 47](./reference.md#function-47-wmui_apply_setup_template) |
+| `wmui_apply_post_setup_template` | Apply post-setup configuration | [Function 61](./reference.md#function-61-wmui_apply_post_setup_template) |
+| `wmui_setup_products_and_fixes` | Install products and apply patches | [Function 46](./reference.md#function-46-wmui_setup_products_and_fixes) |
+
+### Image Generation Functions
+
+| Function | Purpose | Reference |
+|----------|---------|-----------|
+| `wmui_generate_products_zip_from_template` | Generate products.zip for template | [Function 22](./reference.md#function-22-wmui_generate_products_zip_from_template) |
+| `wmui_generate_fixes_zip_from_template` | Generate fixes.zip for template | [Function 27](./reference.md#function-27-wmui_generate_fixes_zip_from_template) |
+
+### Installation Functions
+
+| Function | Purpose | Reference |
+|----------|---------|-----------|
+| `wmui_install_products` | Install webMethods products | [Function 43](./reference.md#function-43-wmui_install_products) |
+| `wmui_patch_installation` | Apply fixes to installation | [Function 44](./reference.md#function-44-wmui_patch_installation) |
+| `wmui_bootstrap_umgr` | Bootstrap Update Manager | [Function 41](./reference.md#function-41-wmui_bootstrap_umgr) |
+
+For complete function documentation, see [reference.md](./reference.md).
+
+## Return Codes
+
+### Success Code
+**Code 0**: Always means success across all functions.
+
+### Function-Specific Codes (1-99)
+Each function defines its own semantics for codes 1-99. The same code number can mean different things in different functions. Refer to individual function documentation in [reference.md](./reference.md).
+
+### Global Framework Codes (100+)
+These codes have consistent meaning across all functions:
+
+| Code | Description |
+|------|-------------|
+| 100 | Basic prerequisites not met / Expected files missing |
+| 101 | Environment variables substitution failed |
+| 102 | Network operation failed (curl, download) |
+| 103 | Critical setup operation failed |
+| 104 | Offline mode prerequisites not met |
+
+## Environment Variables
+
+### Essential Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WMUI_HOME` | WMUI repository home (required in offline mode) | None |
+| `WMUI_ONLINE_MODE` | Framework online/offline mode | `true` |
+| `WMUI_INSTALL_INSTALLER_BIN` | Path to installer binary | `/tmp/WMUI/installer.bin` |
+| `WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN` | Path to Update Manager bootstrap | `/tmp/WMUI/umgr-bootstrap.bin` |
+| `WMUI_PATCH_FIXES_IMAGE_FILE` | Path to fixes image | None |
+| `WMUI_UPD_MGR_HOME` | Update Manager installation directory | `/opt/wm-umgr` |
+| `WMUI_DOWNLOAD_USER` | Download credentials username | None |
+| `WMUI_DOWNLOAD_PASSWORD` | Download credentials password | None |
+
+For a complete list of environment variables, see [reference.md - Environment Variables](./reference.md#environment-variables).
+
+## Typical Workflow
 
 1. **Environment Setup** - Set required environment variables
-2. **Template Application** - Call `applySetupTemplate()` with template path and optional `useLatest` parameter
+2. **Template Application** - Call `wmui_apply_setup_template()` with template path
 3. **Product Installation** - Framework downloads template files, generates InstallProducts line, and installs products
-4. **Patch Application** - If enabled, applies latest fixes via Update Manager
-5. **Post-Setup** - Optionally runs post-setup scripts for configuration
+4. **Patch Application** - If patches available, applies fixes via Update Manager
+5. **Post-Setup** - Optionally run `wmui_apply_post_setup_template()` for additional configuration
 
-### Function Usage Examples
+## Important Notes
 
-```bash
-# Apply template using latest products (default)
-applySetupTemplate "APIGateway/1101/default"
+### Caller Responsibilities
 
-# Apply template using specific versioned products
-applySetupTemplate "APIGateway/1101/default" "NO"
-```
+It is the caller's responsibility to:
+- Properly set all required environment variables
+- Ensure environment variable substitution works correctly in template files
+- Prepare URL-encoded variables when needed (use PU library primitives)
+
+### Script Design
+
+- Scripts have minimal comments to keep them lightweight
+- All parameter files use `envsubst` for variable substitution
+- Scripts are designed for injection into Linux environments
+
+### Version Support
+
+Currently tested with:
+- webMethods version 10.5, 10.11, 10.15, 11.01
+- Update Manager v11
+
+The scripts follow a "use before reuse" principle. Reusability with other versions will be evaluated as needed.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"PU audit module not loaded"**
+   - Solution: Source `2.audit.sh` before `wmui-functions.sh`
+
+2. **"envsubst not installed"**
+   - Solution: Install gettext package
+
+3. **"File not found in offline mode"**
+   - Solution: Ensure `WMUI_HOME` is set and contains all required files
+
+4. **Product installation failed**
+   - Check debug log in audit session directory
+   - Verify all template variables are set
+   - Enable debug mode: `export PU_DEBUG_MODE="true"`
+
+For detailed troubleshooting, see [reference.md - Troubleshooting](./reference.md#troubleshooting).
+
+## Related Documentation
+
+- **Coding Conventions**: [coding-conventions.md](./coding-conventions.md)
+- **Function Reference**: [reference.md](./reference.md)
+- **POSIX Utils**: [../../2l-posix-shell-utils/](../../2l-posix-shell-utils/)
+- **Templates**: [../02.templates/](../02.templates/)
+
+---
+
+**Last Updated**: 2026-01-28
