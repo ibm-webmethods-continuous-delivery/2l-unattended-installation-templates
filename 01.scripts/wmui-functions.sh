@@ -22,15 +22,17 @@ _init() {
     return 101
   fi
 
+  __wmui_default_artifacts_folder='/tmp/WMUI'
+
   # Default values for the framework - Paths
   __wmui_default_installation_home='/opt/webmethods'
-  __wmui_default_installer_bin='/tmp/WMUI/installer.bin'
-  __wmui_default_umgr_bin='/tmp/WMUI/umgr-bootstrap.bin'
+  __wmui_default_installer_bin=${__wmui_default_artifacts_folder}/installer.bin
+  __wmui_default_umgr_bin=${__wmui_default_artifacts_folder}/umgr-bootstrap.bin
   __wmui_default_umgr_home='/opt/wm-umgr'
 
   # Default values - Temporary paths
-  __wmui_default_output_folder='/tmp/WMUI/images'
-  __wmui_default_output_folder_fixes='/tmp/WMUI/images/fixes'
+  __wmui_default_output_folder=${__wmui_default_artifacts_folder}/images
+  __wmui_default_output_folder_fixes=${__wmui_default_artifacts_folder}/images/fixes
 
   # Default values - URLs and checksums
   __wmui_default_installer_url='https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin'
@@ -54,10 +56,12 @@ _init() {
   # WMUI-specific configuration
   # Online/offline mode: true=online (default), anything else=offline
   # Means WMUI may attempt to download generic files if needed
-  export __wmui_online_mode="${WMUI_ONLINE_MODE:-true}"
+  # export __wmui_online_mode="${WMUI_ONLINE_MODE:-true}"
+  # replaced with __1__online_mode -> PU online mode
 
   # assure our own home folder and url in case of online mode
-  if [ ! "${__wmui_online_mode}" = "true" ]; then
+  # shellcheck disable=SC2154
+  if [ ! "${__1__online_mode}" = "true" ]; then
     # Offline mode: caller MUST provide WMUI_HOME
     if [ ! -f "${WMUI_HOME}/01.scripts/wmui-functions.sh" ]; then
       pu_log_e "WMUI|01| ${WMUI_HOME}/01.scripts/wmui-functions.sh not found in offline mode!"
@@ -90,7 +94,7 @@ wmui_hunt_for_file() {
   # $1 - relative Path to __wmui_cache_home
   # $2 - filename
   if [ ! -f "${__wmui_cache_home}/${1}/${2}" ]; then
-    if [ ! "${__wmui_online_mode}" = "true" ]; then
+    if [ ! "${__1__online_mode}" = "true" ]; then
       pu_log_e "WMUI|02| File ${__wmui_cache_home}/${1}/${2} not found! Will not attempt download, as we are working offline!"
       return 1 # File should exist, but it does not
     fi
@@ -114,7 +118,7 @@ wmui_assure_default_installer() {
   local l_default_installer_url="${__wmui_default_installer_url}"
   local l_installer_sha256_sum="${__wmui_default_installer_sha256}"
   local l_installer_bin="${1:-${__wmui_default_installer_bin}}"
-  if ! pu_assure_downloadable_file "${l_installer_bin}" "${l_default_installer_url}" "${l_installer_sha256_sum}"; then
+  if ! pu_assure_public_file "${l_default_installer_url}" "${l_installer_bin}" "${l_installer_sha256_sum}"; then
     pu_log_e "WMUI|03| Cannot assure default installer!"
     return 1
   fi
@@ -129,7 +133,7 @@ wmui_assure_default_umgr_bin() {
   local l_default_umgr_url="${__wmui_default_umgr_url}"
   local l_umgr_sha256_sum="${__wmui_default_umgr_sha256}"
   local l_umgr_bin="${1:-${__wmui_default_umgr_bin}}"
-  if ! pu_assure_downloadable_file "${l_umgr_bin}" "${l_default_umgr_url}" "${l_umgr_sha256_sum}"; then
+  if ! pu_assure_public_file "${l_default_umgr_url}" "${l_umgr_bin}" "${l_umgr_sha256_sum}"; then
     pu_log_e "WMUI|04| Cannot assure default update manager!"
     return 1
   fi

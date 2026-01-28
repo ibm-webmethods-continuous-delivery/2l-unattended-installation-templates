@@ -190,7 +190,7 @@ The WMUI scripts require the following PU modules to be sourced:
    - `pu_log_e` - Error logging
 
 3. **Utility functions** (from PU):
-   - `pu_assure_downloadable_file` - File download with checksum validation
+   - `pu_assure_public_file` - File download with checksum validation
    - `pu_str_substitute` - String substitution utility
    - `pu_lines_to_csv` - Convert lines to CSV format
 

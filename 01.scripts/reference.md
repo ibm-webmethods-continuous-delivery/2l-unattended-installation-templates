@@ -159,7 +159,7 @@ wmui_hunt_for_file "02.templates/01.setup/APIGateway/1101/default" "template.wms
 - Sets executable permission on installer binary
 
 **Dependencies**:
-- Uses `pu_assure_downloadable_file` from PU library
+- Uses `pu_assure_public_file` from PU library
 - Validates SHA256 checksum
 
 **Default Values**:
@@ -708,7 +708,7 @@ All functions depend on these PU library functions:
 
 - `pu_log_i`, `pu_log_d`, `pu_log_w`, `pu_log_e` - Logging
 - `pu_audited_exec` - Audited command execution
-- `pu_assure_downloadable_file` - File download with checksum
+- `pu_assure_public_file` - File download with checksum
 - `pu_str_substitute` - String substitution
 - `pu_lines_to_csv` - Convert lines to CSV (or `linesFileToCsvString`)
 

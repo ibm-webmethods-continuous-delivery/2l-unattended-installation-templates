@@ -3,11 +3,14 @@ services:
     # downloader service
     image: alpine
     volumes:
-      - ../../../../:/mnt/WMUI
+      - ${H_PU_HOME}:${TEST_PU_HOME}
+      - ../../../../:${TEST_WMUI_HOME}
       - ./scripts/:/mnt/scripts
-      - ../../../../.local/artifacts/:/mnt/local/
+      - ${H_WMUI_ARTIFACTS_DIR}:${TEST_ARTIFACTS_HOME}
     environment:
-      - WMUI_INSTALL_INSTALLER_BIN=/mnt/local/default-installer.bin
-      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=/mnt/local/default-upd-mgr-bootstrap.bin
+      - PU_HOME=${TEST_PU_HOME}
+      - WMUI_HOME=${TEST_WMUI_HOME}
+      - TEST_INSTALLER_BIN=${TEST_ARTIFACTS_HOME}/default-installer.bin
+      - TEST_UMGR_BIN=${TEST_ARTIFACTS_HOME}/default-umgr-bootstrap.bin
     entrypoint: /mnt/scripts/entrypoint.sh
 
