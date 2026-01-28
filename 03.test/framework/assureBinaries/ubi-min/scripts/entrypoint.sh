@@ -2,25 +2,26 @@
 
 microdnf -y install which
 
-# shellcheck source=../../../../../01.scripts/commonFunctions.sh
-. /mnt/WMUI/01.scripts/commonFunctions.sh
+# Source Posix Utilities
+# shellcheck source=../../../../../../2l-posix-shell-utils/code/1.init.sh
+. "${PU_HOME}/code/1.init.sh"
+# shellcheck source=../../../../../../2l-posix-shell-utils/code/3.ingester.sh
+. "${PU_HOME}/code/3.ingester.sh"
 
-# shellcheck source=../../../../../01.scripts/installation/setupFunctions.sh
-. /mnt/WMUI/01.scripts/installation/setupFunctions.sh
-
-logEnv
+# shellcheck source=../../../../../01.scripts/wmui-functions.sh
+. "${WMUI_HOME}/01.scripts/wmui-functions.sh"
 
 errNo=0
 
-assureDefaultInstaller || errNo=$((errNo+1))
-assureDefaultUpdMgrBootstrap || errNo=$((errNo+1))
+wmui_assure_default_installer "${TEST_INSTALLER_BIN}" || errNo=$((errNo+1))
+wmui_assure_default_umgr_bin "${TEST_UMGR_BIN}" || errNo=$((errNo+1))
 
-logI "Returning exit code $errNo"
+pu_log_i "Returning exit code $errNo"
 
 if [ $errNo -ne 0 ]; then
-  logE "TEST FAILED!"
+  pu_log_e "TEST FAILED!"
 else
-  logI "SUCCESS"
+  pu_log_i "SUCCESS"
 fi
 
 exit $errNo

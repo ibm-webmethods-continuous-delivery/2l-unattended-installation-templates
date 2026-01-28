@@ -44,22 +44,22 @@ assureVariables
 . "${WMUI_HOME}/01.scripts/commonFunctions.sh"
 . "${WMUI_HOME}/01.scripts/installation/setupFunctions.sh"
 
-assureDefaultInstaller         || logW "Default installer not assured! Eventually clean the output folder."
-assureDefaultUpdMgrBootstrap   || logW "Default Update Manager Bootstrap not assured! Eventually clean the output folder."
+wmui_assure_default_installer         || logW "Default installer not assured! Eventually clean the output folder."
+wmui_assure_default_umgr_bin   || logW "Default Update Manager Bootstrap not assured! Eventually clean the output folder."
 
-logI "Installing Update Manager..."
+pu_log_i "Installing Update Manager..."
 if ! bootstrapUpdMgr "${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN}" "" "${WMUI_UPD_MGR_HOME}"; then
-  logE "Update Manager bootstrap failed with code $?, stopping for debug. CTRL-C for the next instructions"
+  pu_log_e "Update Manager bootstrap failed with code $?, stopping for debug. CTRL-C for the next instructions"
   tail -f /dev/null
 fi
 
 # Params:
 # $1 - Template ID
 processTemplate() {
-  logI "Processing template ${template}..."
+  pu_log_i "Processing template ${template}..."
 
   if [ -f "${WMUI_PRODUCT_IMAGES_SHARED_DIRECTORY}/${1}}/products.zip" ]; then
-    logI "Products image for template ${1} already exists, nothing to do."
+    pu_log_i "Products image for template ${1} already exists, nothing to do."
   else
     # Parameters
     # $1 -> setup template
@@ -75,11 +75,11 @@ processTemplate() {
       "${WMUI_PRODUCT_IMAGES_SHARED_DIRECTORY}" \
       "${WMUI_PRODUCT_IMAGES_PLATFORM}"
     
-    logI "Products file generated for template ${template}"
+    pu_log_i "Products file generated for template ${template}"
   fi
 
   if [ -f "${WMUI_FIX_IMAGES_SHARED_DIRECTORY}/${1}/${WMUI_FIXES_DATE_TAG}/fixes.zip" ]; then
-    logI "Fixes image for template ${1} and tag ${WMUI_FIXES_DATE_TAG} already exists, nothing to do."
+    pu_log_i "Fixes image for template ${1} and tag ${WMUI_FIXES_DATE_TAG} already exists, nothing to do."
   else
     # TODO: generalize
     # Parameters
@@ -96,15 +96,15 @@ processTemplate() {
       "${WMUI_PRODUCT_IMAGES_PLATFORM}" \
       "${WMUI_UPD_MGR_HOME}"
 
-    logI "Fixes file generated for template ${template}"
+    pu_log_i "Fixes file generated for template ${template}"
   fi
 
-  logI "Template $template processed."
+  pu_log_i "Template $template processed."
 }
 
 for template in ${TEST_Templates}; do
   processTemplate "${template}"
 done
 
-# logI "stopping for debug"
+# pu_log_i "stopping for debug"
 # tail -f /dev/null

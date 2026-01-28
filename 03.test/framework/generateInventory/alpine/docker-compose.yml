@@ -4,8 +4,14 @@ services:
     image: alpine
     volumes:
       - ../../../../:/mnt/WMUI
+      - ../../../../../2l-posix-shell-utils:/mnt/pu
       - ./scripts/:/mnt/scripts
       - ./test/:/mnt/test/
     environment:
-      - WMUI_COLORIZED_OUTPUT=1
+      - PU_HOME=/mnt/pu
+      - WMUI_HOME=/mnt/WMUI
+    command: /mnt/scripts/entrypoint.sh
     entrypoint: /mnt/scripts/entrypoint.sh
+
+# Made with Bob
+# TODO: move into the unit tests for wmui-functions

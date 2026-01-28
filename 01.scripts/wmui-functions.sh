@@ -17,7 +17,7 @@ _init() {
   # Verify that PU audit is loaded
   # shellcheck disable=SC2154
   if [ ! -d "${__2__audit_session_dir}" ]; then
-    echo "WMUI|01|FATAL: commonFunctions.sh requires posix-shell-utils (2.audit.sh) to be sourced first!"
+    echo "WMUI|01|FATAL: wmui-functions.sh requires posix-shell-utils (2.audit.sh) to be sourced first!"
     echo "WMUI|01|INFO : Please source 2l-posix-shell-utils/code/2.audit.sh before sourcing commonFunctions.sh"
     return 101
   fi
@@ -124,6 +124,7 @@ wmui_assure_default_installer() {
   fi
   pu_log_d "WMUI|03| Default installer correctly assured in ${l_installer_bin}"
   chmod u+x "${l_installer_bin}"
+  return 0
 }
 
 # Function 04 - assure default installer
@@ -139,6 +140,7 @@ wmui_assure_default_umgr_bin() {
   fi
   pu_log_d "WMUI|04| Default update manager correctly assured in ${l_umgr_bin}"
   chmod u+x "${l_umgr_bin}"
+  return 0
 }
 
 # Function 05 - Generating an inventory file from a given product list, usually from a template

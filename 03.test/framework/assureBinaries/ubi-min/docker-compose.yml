@@ -1,13 +1,24 @@
 services:
   d:
     # downloader service
-    image: registry.access.redhat.com/ubi8/ubi-minimal
+    # Prerequisite: build image first, using
+    # https://github.com/ibm-webmethods-continuous-delivery/7u-container-images/blob/main/images/u/ubi9/vm-emu/minimal/build-local-wmui.bat
+    image: vm-emu-min-local-wmui-u:ubi9
     volumes:
-      - ../../../../:/mnt/WMUI
+      - ../../../../:/opt/iwcd/wmui
       - ./scripts/:/mnt/scripts
-      - ../../../../.local/artifacts/:/mnt/local/
+      - ${H_WMUI_ARTIFACTS_DIR}:/mnt/artifacts/
+      - install-home:/opt/webmethods
+      - audit-home:/var/webmethods/audit
+      - umgr-home:/opt/wm-upd-mgr-v11
+      - wm-user-home:/home/webmethods
     environment:
-      - WMUI_INSTALL_INSTALLER_BIN=/mnt/local/default-installer.bin
-      - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN=/mnt/local/default-upd-mgr-bootstrap.bin
+      - TEST_INSTALLER_BIN=/mnt/artifacts/default-installer.bin
+      - TEST_UMGR_BIN=/mnt/artifacts/default-umgr-bootstrap.bin
     entrypoint: /mnt/scripts/entrypoint.sh
 
+volumes:
+  install-home: {}
+  audit-home: {}
+  umgr-home: {}
+  wm-user-home: {}

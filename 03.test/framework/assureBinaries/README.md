@@ -7,13 +7,13 @@ This directory contains Docker-based test harnesses for validating the binary as
 Two identical test harnesses test the same functionality on different base images:
 
 - **`alpine/`** - Tests on Alpine Linux (lightweight)
-- **`ubi-min/`** - Tests on Red Hat UBI 8 Minimal (enterprise)
+- **`ubi-min/`** - Tests on Red Hat UBI Minimal (enterprise)
 
 ## Test Purpose
 
 Both harnesses validate the following framework functions:
-- `assureDefaultInstaller()` - Ensures the webMethods installer binary is available
-- `assureDefaultUpdMgrBootstrap()` - Ensures the Software AG Update Manager bootstrap binary is available
+- `wmui_assure_default_installer()` - Ensures the webMethods installer binary is available
+- `wmui_assure_default_umgr_bin()` - Ensures the webMethods Update Manager bootstrap binary is available
 
 ## Directory Structure
 
@@ -23,10 +23,8 @@ Each test harness contains:
 [alpine|ubi-min]/
 ├── docker-compose.yml    # Container orchestration
 ├── run.bat              # Windows test runner
-├── scripts/
-│   └── entrypoint.sh    # Test execution script
-└── local/
-    └── README.md        # Local artifacts placeholder
+└── scripts/
+    └── entrypoint.sh    # Test execution script
 ```
 
 ## Test Harness Details
@@ -34,41 +32,59 @@ Each test harness contains:
 ### Alpine Test Harness
 
 **Base Image**: `alpine:latest`
-**Package Dependencies**: 
+**Package Dependencies**:
 - `curl` (for downloads)
 
 **Container Configuration**:
-- Mounts project root as `/mnt/WMUI`
+- Mounts PU library via `H_PU_HOME` → `TEST_PU_HOME`
+- Mounts WMUI home via `H_WMUI_HOME` → `TEST_WMUI_HOME`
 - Mounts test scripts as `/mnt/scripts`
-- Mounts local artifacts directory as `/mnt/local`
+- Mounts artifacts directory via `H_WMUI_ARTIFACTS_DIR` → `TEST_ARTIFACTS_HOME`
 - Executes `entrypoint.sh` on startup
 
 ### UBI Minimal Test Harness
 
-**Base Image**: `registry.access.redhat.com/ubi8/ubi-minimal`
-**Package Dependencies**: 
+**Base Image**: Custom image `vm-emu-min-local-wmui-u:ubi9`
+**Prerequisites**: Build image using [7u-container-images](https://github.com/ibm-webmethods-continuous-delivery/7u-container-images/blob/main/images/u/ubi9/vm-emu/minimal/build-local-wmui.bat)
+
+**Package Dependencies**:
 - `which` (basic command utilities)
 
 **Container Configuration**:
-- Identical mount structure to Alpine
-- Uses `microdnf` package manager instead of `apk`
+- Mounts WMUI home as `/opt/iwcd/wmui`
+- Mounts test scripts as `/mnt/scripts`
+- Mounts artifacts directory as `/mnt/artifacts`
+- Includes persistent volumes for installation, audit, and Update Manager
+- Executes `entrypoint.sh` on startup
 
 ## Environment Variables
 
-Both harnesses use consistent environment variables:
+### Alpine Test
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `WMUI_INSTALL_INSTALLER_BIN` | `/mnt/local/default-installer.bin` | Expected installer binary location |
-| `WMUI_PATCH_SUM_BOOTSTRAP_BIN` | `/mnt/local/default-sum-bootstrap.bin` | Expected Update Manager bootstrap location |
+| Variable | Purpose |
+|----------|---------|
+| `H_PU_HOME` | Host path to PU library |
+| `TEST_PU_HOME` | Container path for PU library |
+| `H_WMUI_HOME` | Host path to WMUI repository |
+| `TEST_WMUI_HOME` | Container path for WMUI repository |
+| `H_WMUI_ARTIFACTS_DIR` | Host path to artifacts directory |
+| `TEST_ARTIFACTS_HOME` | Container path for artifacts |
+| `TEST_INSTALLER_BIN` | Expected installer binary location |
+| `TEST_UMGR_BIN` | Expected Update Manager bootstrap location |
+
+### UBI Minimal Test
+
+| Variable | Purpose |
+|----------|---------|
+| `TEST_INSTALLER_BIN` | Expected installer binary location (`/mnt/artifacts/default-installer.bin`) |
+| `TEST_UMGR_BIN` | Expected Update Manager bootstrap location (`/mnt/artifacts/default-umgr-bootstrap.bin`) |
 
 ## Test Execution Flow
 
 1. **Package Installation**: Install required system packages (curl/which)
-2. **Framework Loading**: Source `commonFunctions.sh` and `setupFunctions.sh`
-3. **Environment Logging**: Display current environment via `logEnv`
-4. **Binary Assurance**: Test both installer and bootstrap availability
-5. **Result Reporting**: Return accumulated error count
+2. **Framework Loading**: Source PU libraries and WMUI functions
+3. **Binary Assurance**: Test both installer and Update Manager bootstrap availability
+4. **Result Reporting**: Return accumulated error count
 
 ## Error Handling
 
@@ -100,17 +116,6 @@ cd 03.test/framework/assureBinaries/ubi-min
 docker compose run --rm d
 ```
 
-## Path Dependencies
-
-### Required Artifacts Directory
-Both tests expect artifacts in: `../../../../local/artifacts/`
-Relative to each test directory, this resolves to the project root `local/artifacts/` folder.
-
-### Framework Scripts
-Tests source framework scripts from: `../../../../01.scripts/`
-- `commonFunctions.sh` - Core utilities and logging
-- `installation/setupFunctions.sh` - Installation and binary assurance functions
-
 ## Expected Outcomes
 
 ### Success Scenario
@@ -123,23 +128,17 @@ Tests source framework scripts from: `../../../../01.scripts/`
 - Log output: "TEST FAILED!"
 - Missing binaries logged with specific error messages
 
-## Logical Consistency Analysis
-
-✅ **Consistent Structure**: Both harnesses have identical file organization
-✅ **Correct Function Names**: Fixed to use `assureDefaultUpdMgrBootstrap` instead of non-existent `assureDefaultSumBootstrap`
-✅ **Valid Path References**: All relative paths correctly resolve to framework and artifacts locations
-✅ **Consistent Environment**: Both tests use same environment variable names and paths
-✅ **Proper Error Handling**: Additive error counting with appropriate exit codes
-
-## Fixed Issues
-
-1. **YAML Syntax Error**: Removed double dash in ubi-min volumes configuration
-2. **Function Name Error**: Corrected `assureDefaultSumBootstrap` to `assureDefaultUpdMgrBootstrap`
-3. **Missing Version**: Added `version: '3.9'` to ubi-min docker-compose.yml for consistency
-
 ## Dependencies
 
 - Docker and Docker Compose
-- Access to container registries (Docker Hub for Alpine, Red Hat for UBI)
-- Framework scripts in `01.scripts/` directory
-- Artifacts directory structure in `local/artifacts/`
+- Access to container registries (Docker Hub for Alpine, custom image for UBI)
+- PU library (2l-posix-shell-utils)
+- WMUI framework scripts in `01.scripts/` directory
+- Artifacts directory with installer and Update Manager binaries
+
+## Notes
+
+- Both tests validate the same functionality on different base images
+- Tests follow consistent patterns for maintainability
+- Environment variable-based paths allow flexible deployment
+- UBI test requires pre-built custom image with WMUI dependencies

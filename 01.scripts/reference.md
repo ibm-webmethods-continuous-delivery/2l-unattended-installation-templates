@@ -80,9 +80,14 @@ These are set by the framework and should not be modified externally:
 | Variable | Description |
 |----------|-------------|
 | `__wmui_cache_home` | Local cache directory for downloaded files |
-| `__wmui_online_mode` | Internal online mode flag |
+| `__wmui_online_mode` | Internal online mode flag (deprecated, use `__1__online_mode` from PU) |
 | `__wmui_product_online_mode` | Internal product online mode flag |
-| `__wmui_default_*` | Various default values for paths, URLs, and settings |
+| `__wmui_default_artifacts_folder` | Base folder for all WMUI artifacts (default: `/tmp/WMUI`) |
+| `__wmui_default_installer_bin` | Default installer binary path (derived from artifacts folder) |
+| `__wmui_default_umgr_bin` | Default Update Manager binary path (derived from artifacts folder) |
+| `__wmui_default_output_folder` | Default output folder for images (derived from artifacts folder) |
+| `__wmui_default_output_folder_fixes` | Default output folder for fixes images (derived from artifacts folder) |
+| `__wmui_default_*` | Various other default values for paths, URLs, and settings |
 
 ---
 
