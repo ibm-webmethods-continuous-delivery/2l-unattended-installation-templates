@@ -1,0 +1,36 @@
+volumes:
+  audit: {}
+  install-home: {}
+  user-home: {}
+  umgr-home: {}
+
+services:
+  wmui-zip-img-builder:
+    image: wmui-zip-img-builder
+    build: ./build
+    container_name: wmui-zip-img-builder
+    volumes:
+      # image predefined mount-points
+      - audit:${WMUI_TEST_AUDIT_DIR}
+      - umgr-home:${WMUI_TEST_UMGR_HOME_DIR}
+      - install-home:${WMUI_TEST_INSTALL_HOME_DIR}
+      - user-home:${WMUI_TEST_USER_HOME}
+      - ./scripts/:${WMUI_TEST_SCRIPTS_DIR}
+      - ../../../:${WMUI_TEST_WMUI_HOME_DIR}/
+      - ${H_WMUI_TEST_OUTPUT_FOLDER}/:${WMUI_TEST_ARTIFACTS_DIR}/
+    environment:
+      - PU_DEBUG_MODE
+      - PU_ONLINE_MODE=false          # PU included in the image
+      # Furthermore ,this test mounts the local folder, no need to hunt for the sources
+      - WMUI_TEST_OUTPUT_FOLDER=${WMUI_TEST_ARTIFACTS_DIR}
+      - WMUI_PRODUCT_ONLINE_MODE=true # we need to be online to build images
+      # Variables in .env carried over inside the container
+      - WMUI_DOWNLOAD_PASSWORD
+      - WMUI_DOWNLOAD_USER
+      - WMUI_TEST_ALL_PRODUCTS_OUTPUT_DIR
+      - WMUI_TEST_ARTIFACTS_DIR
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_Templates
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_TEST_USE_LATEST_PRODUCTS_LIST
+    entrypoint: ${WMUI_TEST_SCRIPTS_DIR}/entrypoint.sh

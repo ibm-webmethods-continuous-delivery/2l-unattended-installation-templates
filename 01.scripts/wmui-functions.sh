@@ -143,7 +143,93 @@ wmui_assure_default_umgr_bin() {
   return 0
 }
 
-# Function 05 - Generating an inventory file from a given product list, usually from a template
+# Function 05 assure and get the products list file for a template
+wmui_get_product_list_of_template() {
+  # Get the products list file for a template
+  #
+  # Args:
+  #   $1 - template id
+  #   $2 - return latest or not
+  #
+  # Returns:
+  #   Path to products list file
+
+  # Hunt for products list files and create enhanced template
+  local l_use_latest="${2:-${__wmui_default_use_latest}}"
+  local l_template_products_list_file="ProductsLatestList.txt"
+
+  if [ ! "${l_use_latest}" = "true" ]; then
+    l_template_products_list_file="ProductsVersionedList.txt"
+  fi
+
+  wmui_hunt_for_file "02.templates/01.setup/${1}" "${l_template_products_list_file}"
+
+  if [ ! -f "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}" ]; then
+    pu_log_e "WMUI|05| Products list file not found: ${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}"
+    echo "not found"
+    return 1
+  fi
+
+  echo "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}"
+}
+
+# Function 07 - Merge multiple product list files into one unified list
+wmui_merge_product_lists() {
+  # Parameters
+  # $1 - output file path (merged products list file)
+  # $2+ - input file paths (one or more product list files to merge)
+
+  local l_output_file="${1}"
+  shift  # Remove first argument, remaining are input files
+
+  # Check required parameters
+  if [ -z "$l_output_file" ]; then
+    pu_log_e "WMUI|07| Output file path is required"
+    return 1
+  fi
+
+  if [ $# -eq 0 ]; then
+    pu_log_e "WMUI|07| At least one input file is required"
+    return 2
+  fi
+
+  # Check if all input files exist
+  for l_input_file in "$@"; do
+    if [ ! -f "$l_input_file" ]; then
+      pu_log_e "WMUI|07| Input file does not exist: $l_input_file"
+      return 3
+    fi
+  done
+
+  pu_log_i "WMUI|07| Merging ${#} product list files into ${l_output_file}..."
+
+  # Create temporary file for merging
+  local l_temp_file="${l_output_file}.tmp"
+
+  # Clear temp file
+  true > "${l_temp_file}"
+
+  # Concatenate all input files
+  for l_input_file in "$@"; do
+    pu_log_d "WMUI|07| Adding products from ${l_input_file}"
+    cat "${l_input_file}" >> "${l_temp_file}"
+  done
+
+  # Sort, remove duplicates, and save to output file
+  # Note: assumes all product list files have EOF on newline
+  sort "${l_temp_file}" | uniq > "${l_output_file}"
+
+  # Clean up temp file
+  rm -f "${l_temp_file}"
+
+  local l_product_count
+  l_product_count=$(wc -l < "${l_output_file}")
+  pu_log_i "WMUI|07| Successfully merged product lists: ${l_product_count} unique products"
+
+  return 0
+}
+
+# Function 06 - Generating an inventory file from a given product list, usually from a template
 wmui_generate_inventory_from_products_list() {
   # Parameters - generateInventoryFileFromProductsList
   # $1 - input file path (products list file)
@@ -161,13 +247,13 @@ wmui_generate_inventory_from_products_list() {
 
   # Check required parameters
   if [ -z "$l_input_file" ] || [ -z "$l_output_file" ]; then
-    pu_log_e "WMUI|05| Both input file and output file are required"
+    pu_log_e "WMUI|06| Both input file and output file input variables are required"
     return 1
   fi
 
   # Check if input file exists
   if [ ! -f "$l_input_file" ]; then
-    pu_log_e "WMUI|05| Input file '$l_input_file' does not exist"
+    pu_log_e "WMUI|06| Input file '$l_input_file' does not exist"
     return 2
   fi
 
@@ -176,7 +262,7 @@ wmui_generate_inventory_from_products_list() {
   l_product_lines=$(grep -v '^[[:space:]]*$' "$l_input_file")
 
   if [ -z "$l_product_lines" ]; then
-    pu_log_e "WMUI|05| No products found in file '$l_input_file'"
+    pu_log_e "WMUI|06| No products found in file '$l_input_file'"
     return 3
   fi
 
@@ -184,12 +270,6 @@ wmui_generate_inventory_from_products_list() {
   local l_temp_dir
   l_temp_dir=$(mktemp -d)
   local l_product_file="$l_temp_dir/products.tmp"
-
-  # Cleanup function
-  cleanup() {
-    rm -rf "$l_temp_dir"
-  }
-  trap cleanup EXIT
 
   # Process each product line
   echo "$l_product_lines" | while IFS= read -r l_product_line; do
@@ -223,8 +303,8 @@ wmui_generate_inventory_from_products_list() {
 
   # Check if any products were processed
   if [ ! -f "$l_product_file" ] || [ ! -s "$l_product_file" ]; then
-    pu_log_e "WMUI|05| No products could be parsed from file '$l_input_file'"
-    cleanup
+    pu_log_e "WMUI|06| No products could be parsed from file '$l_input_file'"
+    rm -rf "$l_temp_dir"
     return 4
   fi
 
@@ -269,39 +349,9 @@ wmui_generate_inventory_from_products_list() {
     echo "}"
   } > "$l_output_file"
 
-  cleanup
-  pu_log_i "WMUI|05| Successfully generated inventory file: $l_output_file"
+  rm -rf "$l_temp_dir"
+  pu_log_i "WMUI|06| Successfully generated inventory file: $l_output_file"
   return 0
-}
-
-# Function 05 assure and get the products list file for a template
-wmui_get_product_list_of_template() {
-  # Get the products list file for a template
-  #
-  # Args:
-  #   $1 - template name
-  #   $2 -return latest or not
-  #
-  # Returns:
-  #   Path to products list file
-
-  # Hunt for products list files and create enhanced template
-  local l_use_latest="${2:-${__wmui_default_use_latest}}"
-  local l_template_products_list_file="ProductsLatestList.txt"
-
-  if [ ! "${l_use_latest}" = "true" ]; then
-    l_template_products_list_file="ProductsVersionedList.txt"
-  fi
-
-  wmui_hunt_for_file "02.templates/01.setup/${1}" "${l_template_products_list_file}"
-
-  if [ ! -f "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}" ]; then
-    pu_log_e "WMUI|05| Products list file not found: ${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}"
-    echo "not found"
-    return 1
-  fi
-
-  echo "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}"
 }
 
 ######### Functions 21 - 30 - zip files generation
@@ -324,9 +374,9 @@ wmui_generate_products_zip_from_list(){
     wmui_assure_default_installer "${l_installer_bin}" || return 1
   fi
   local l_output_folder="${3:-${__wmui_default_output_folder}}"
-  local l_products_zip="${l_output_folder}/${1}/products.zip"
-  local l_dbg_log="${l_output_folder}/${1}/debug.log"
-  local l_img_creation_script="${l_output_folder}/${1}/createProductImage.wmscript"
+  local l_products_zip="${l_output_folder}/products.zip"
+  local l_dbg_log="${l_output_folder}/product_zip_creation_debug.log"
+  local l_img_creation_script="${l_output_folder}/createProductZipImage.wmscript"
   local l_products_csv="${1:-${__wmui_default_products_csv}}"
 
   if [ "${l_products_csv}" = "${__wmui_default_products_csv}" ]; then
@@ -335,7 +385,7 @@ wmui_generate_products_zip_from_list(){
   fi
 
   if [ -f "${l_products_zip}" ]; then
-    pu_log_i "WMUI|21| Products image for template ${1} already exists, nothing to do."
+    pu_log_i "WMUI|21| Products zip image file ${l_products_zip} already exists, nothing to do."
     return 0
   fi
 
@@ -380,8 +430,8 @@ wmui_generate_products_zip_from_list(){
   pu_log_i "WMUI|21| Creating the volatile script ..."
   local l_epoch
   l_epoch=$(date +%s)
-  local l_ephemeral_script="${__wmui_temp_fs_quick}/WMUI/${l_epoch}/createProductImage.wmscript"
-  mkdir -p "${__wmui_temp_fs_quick}/WMUI/setup/templates/${l_epoch}/"
+  local l_ephemeral_script="${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}/createProductImage.wmscript"
+  mkdir -p "${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}/"
   cp "${l_img_creation_script}" "${l_ephemeral_script}"
   # TODO: assure credential variables
   echo "Username=${WMUI_DOWNLOAD_USER}" >>"${l_ephemeral_script}"
@@ -392,7 +442,10 @@ wmui_generate_products_zip_from_list(){
   ## TODO: deal with \ escaping in the password. For now avoid using '\' - backslash in the password string
 
   ## TODO: not space safe, but it shouldn't matter for now
-  local l_cmd="${l_installer_bin} -console -readScript ${l_ephemeral_script}"
+  local l_temp_installer_bin="/tmp/installer-${l_epoch}.bin"
+  cp "${l_installer_bin}" "${l_temp_installer_bin}"
+  chmod u+x "${l_temp_installer_bin}"
+  local l_cmd="${l_temp_installer_bin} -console -readScript ${l_ephemeral_script}"
   # shellcheck disable=SC2154
   if [ "${__1__debug_mode}" = "true" ]; then
     l_cmd="${l_cmd} -debugFile '${l_dbg_log}' -debugLvl verbose"
@@ -403,18 +456,28 @@ wmui_generate_products_zip_from_list(){
 
   # avoid downloading what we already have
   if [ -s "${__wmui_temp_fs_quick}/productsImagesList.txt" ]; then
-    l_cmd="${l_cmd} -existingImages \"${__wmui_temp_fs_quick}/productsImagesList.txt\""
+    pu_log_d "WMUI|21| Using cached zip images specified in file __""${__wmui_temp_fs_quick}/productsImagesList.txt""__ "
+    l_cmd="${l_cmd} -existingImages ""${__wmui_temp_fs_quick}/productsImagesList.txt"""
   fi
 
   pu_log_i "WMUI|21| Creating the product image ${l_products_zip}... This may take some time..."
   pu_log_d "WMUI|21| Command is ${l_cmd}"
-  pu_audited_exec "${l_cmd}" "Create-products-image-for-template-$(pu_str_substitute "$1" "/" "-")"
+  pu_audited_exec "${l_cmd}" "Create-all-products-image"
   local l_create_result=$?
-  pu_log_i "WMUI|21| Image ${l_products_zip} creation completed, result: ${l_create_result}"
-  rm -f "${l_ephemeral_script}"
+  if [ $l_create_result -ne 0 ] ; then
+    pu_log_e "WMUI|21| Image ${l_products_zip} creation failed with result: ${l_create_result}"
+    pu_log_e "WMUI|21| Saving the ephemeral script into the output folder..."
+    mv "${l_ephemeral_script}" "${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}"/
+    if [ -f "${l_products_zip}" ]; then
+      pu_log_e "WMUI|21| Moving away the resulting file, most likely corrupted or incomplete."
+      mv "${l_products_zip}" "${l_products_zip}.${l_epoch}.err.zip"
+    fi
+  else
+    pu_log_i "WMUI|21| Image ${l_products_zip} creation successfully completed"
+  fi
+  rm -f "${l_ephemeral_script}" "${l_temp_installer_bin}"
 
   return ${l_create_result}
-
 }
 
 # Function 22 - Generating a products image zip file for a template
@@ -433,7 +496,8 @@ wmui_generate_products_zip_from_template() {
   l_template_products_list_file=$(wmui_get_product_list_of_template "${1}" "${5}")
 
   local l_products_csv
-  l_products_csv=$(pu_lines_to_csv "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_template_products_list_file}")
+  # l_template_products_list_file already contains the full path from Function 05
+  l_products_csv=$(pu_lines_to_csv "${l_template_products_list_file}")
 
   wmui_generate_products_zip_from_list "${l_products_csv}" "${2}" "${3}" "${4}"
 }
@@ -446,8 +510,65 @@ wmui_generate_products_zip_from_templates_list() {
   # $3 -> OPTIONAL - output folder, default /tmp/images
   # $4 -> OPTIONAL - platform string, default LNXAMD64
   # $5 -> OPTIONAL: useLatest (true/false), default true. If true, uses ProductsLatestList.txt, otherwise uses ProductsVersionedList.txt
-  pu_log_i "WMUI|23| Generating a single products zip file for the list of templates [ ${1} ]" ...
-  pu_log_i "To implement"
+
+  local l_templates_list="${1}"
+  local l_installer_bin="${2:-${__wmui_default_installer_bin}}"
+  local l_output_folder="${3:-${__wmui_default_output_folder}}"
+  local l_platform_string="${4:-${__wmui_default_platform_string}}"
+  local l_use_latest="${5:-${__wmui_default_use_latest}}"
+
+  if [ -z "$l_templates_list" ]; then
+    pu_log_e "WMUI|23| Templates list is required"
+    return 1
+  fi
+
+  pu_log_i "WMUI|23| Generating a single products zip file for the list of templates [ ${l_templates_list} ]"
+
+  # Create temporary file for merged products list
+  local l_epoch
+  l_epoch=$(date +%s)
+  local l_temp_merged_list="/tmp/wmui_merged_products_${l_epoch}.txt"
+
+  # Collect all product list files
+  local l_product_list_files=""
+  for l_template in ${l_templates_list}; do
+    local l_template_list_file
+    l_template_list_file=$(wmui_get_product_list_of_template "${l_template}" "${l_use_latest}")
+    if [ $? -ne 0 ]; then
+      pu_log_e "WMUI|23| Failed to get product list for template ${l_template}"
+      rm -f "${l_temp_merged_list}"
+      return 2
+    fi
+    l_product_list_files="${l_product_list_files} ${l_template_list_file}"
+  done
+
+  # Merge all product lists using Function 07
+  # shellcheck disable=SC2086
+  wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files}
+  if [ $? -ne 0 ]; then
+    pu_log_e "WMUI|23| Failed to merge product lists"
+    rm -f "${l_temp_merged_list}"
+    return 3
+  fi
+
+  # Convert merged list to CSV
+  local l_products_csv
+  l_products_csv=$(pu_lines_to_csv "${l_temp_merged_list}")
+
+  # Generate products zip from merged CSV
+  wmui_generate_products_zip_from_list "${l_products_csv}" "${l_installer_bin}" "${l_output_folder}" "${l_platform_string}"
+  local l_result=$?
+
+  # Cleanup
+  rm -f "${l_temp_merged_list}"
+
+  if [ ${l_result} -ne 0 ]; then
+    pu_log_e "WMUI|23| Failed to generate products zip, code ${l_result}"
+    return 4
+  fi
+
+  pu_log_i "WMUI|23| Successfully generated products zip for templates list"
+  return 0
 }
 
 # Function 26 - Generating fixes zip file for list of products
@@ -460,7 +581,6 @@ wmui_generate_fixes_zip_from_list_on_file() {
   # $4 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
   # $5 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
   # $6 -> OPTIONAL - upd-mgr-bootstrap binary location, default ${__wmui_default_umgr_bin}
-  # $7 -> OPTIONAL: useLatest (true/false), default ${__wmui_default_use_latest}. If true, uses ProductsLatestList.txt, otherwise uses ProductsVersionedList.txt
   local l_products_list_file="${1:-${__wmui_default_products_csv}}"
   if [ "${l_products_list_file}" = "${__wmui_default_products_csv}" ]; then
     pu_log_e "WMUI|26| No product list file provided"
@@ -472,10 +592,10 @@ wmui_generate_fixes_zip_from_list_on_file() {
   local l_d
   l_d="$(date +%y-%m-%dT%H.%M.%S_%3N)"
   local l_fixes_tag="${3:-$l_crt_date}"
-  pu_log_i "WMUI|26| Addressing fixes image for setup template ${1} and tag ${l_fixes_tag}..."
+  pu_log_i "WMUI|26| Addressing fixes image from given product list file ${1} using tag ${l_fixes_tag}..."
 
   local l_output_dir="${2:-${__wmui_default_output_folder_fixes}}"
-  local l_fixes_dir="${l_output_dir}/${1}/${l_fixes_tag}"
+  local l_fixes_dir="${l_output_dir}/${l_fixes_tag}"
   mkdir -p "${l_fixes_dir}"
   local l_fixes_image_file="${l_fixes_dir}/fixes.zip"
   local l_permanent_inventory_file="${l_fixes_dir}/inventory.json"
@@ -483,7 +603,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
   local l_platform_string="${4:-${__wmui_default_platform_string}}"
 
   if [ -f "${l_fixes_image_file}" ]; then
-    pu_log_i "WMUI|26| Fixes image for template ${1} and tag ${l_fixes_tag} already exists, nothing to do."
+    pu_log_i "WMUI|26| Fixes image ${l_fixes_image_file} already exists, nothing to do."
     return 0
   fi
 
@@ -494,7 +614,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
     if [ ! -f "${l_upd_mgr_bootstrap_bin}" ]; then
       pu_log_w "WMUI|26| UPD_MGR Bootstrap binary not found, trying to obtain the default one..."
       wmui_assure_default_umgr_bin "${l_upd_mgr_bootstrap_bin}" || return $?
-      # Parameters - bootstrapUpdMgr
+      # Parameters - wmui_bootstrap_umgr
       # $1 - Update Manager Bootstrap file
       # $2 - Fixes image file, mandatory for offline mode
       # $3 - OPTIONAL Where to install (UPD_MGR Home), default ${__wmui_default_umgr_home}
@@ -506,32 +626,37 @@ wmui_generate_fixes_zip_from_list_on_file() {
   if [ -f "${l_permanent_inventory_file}" ]; then
     pu_log_i "WMUI|26| Inventory file ${l_permanent_inventory_file} already exists, skipping creation."
   else
-    pu_log_i "WMUI|26| Inventory file ${l_permanent_inventory_file} does not exists, creating now."
+    pu_log_i "WMUI|26| Inventory file ${l_permanent_inventory_file} does not exist, creating now."
 
-    wmui_hunt_for_file "02.templates/01.setup/${1}" "template.wmscript"
+    # Ensure directory exists before creating inventory file
+    local l_inventory_dir
+    l_inventory_dir=$(dirname "${l_permanent_inventory_file}")
+    mkdir -p "${l_inventory_dir}"
 
-    if [ ! -f "${__wmui_cache_home}/02.templates/01.setup/${1}/template.wmscript" ]; then
-      pu_log_e "WMUI|26| Required file ${__wmui_cache_home}/02.templates/01.setup/${1}/template.wmscript not found, cannot continue"
-      return 2
-    fi
-
-    # Parameters - generateInventoryFileFromProductsList
+    # Parameters - wmui_generate_inventory_from_products_list
     # $1 - input file path (products list file)
     # $2 - output file path (JSON inventory file)
     # $3 - OPTIONAL: sum version string, defaults to ${__wmui_default_umgr_version_string}
     # $4 - OPTIONAL: platform string, defaults to ${__wmui_default_platform_string}
     # $5 - OPTIONAL: update manager version, defaults to ${__wmui_default_umgr_version}
     # $6 - OPTIONAL: platform group string, defaults to ${__wmui_default_platform_group_string}
-    wmui_generate_products_zip_from_list \
-      "${__wmui_cache_home}/02.templates/01.setup/${1}/${l_products_list_file}" \
+    wmui_generate_inventory_from_products_list \
+      "${l_products_list_file}" \
       "${l_permanent_inventory_file}" \
-      "" "${l_platform_string}"
+      "" \
+      "${l_platform_string}"
   fi
 
   if [ -f "${l_permanent_script_file}" ]; then
     pu_log_i "WMUI|26| Permanent script file ${l_permanent_script_file} already exists, skipping creation..."
   else
     pu_log_i "WMUI|26| Permanent script file ${l_permanent_script_file} does not exist, creating now..."
+
+    # Ensure directory exists before creating script file
+    local l_script_dir
+    l_script_dir=$(dirname "${l_permanent_script_file}")
+    mkdir -p "${l_script_dir}"
+
     {
       echo "# Generated"
       echo "scriptConfirm=N"
@@ -558,11 +683,11 @@ wmui_generate_fixes_zip_from_list_on_file() {
 
   cd "${l_upd_mgr_home}/bin" || return 3
 
-  pu_audited_exec "${l_cmd}" "Create-fixes-image-for-template-$(pu_str_substitute "$1" "/" "-")-tag-${l_fixes_tag}"
+  pu_audited_exec "${l_cmd}" "Create-all-fixes-image-tag-${l_fixes_tag}"
   local l_result_fix_creation=$?
 
   if [ ${l_result_fix_creation} -ne 0 ]; then
-    pu_log_w "WMUI|26| Fix image creation for template ${1} failed with code ${l_result_fix_creation}! Saving troubleshooting information into the destination folder"
+    pu_log_w "WMUI|26| All fixes image creation failed with code ${l_result_fix_creation}! Saving troubleshooting information into the destination folder"
     pu_log_i "WMUI|26| Archiving destination folder results, which are partial at best..."
     cd "${l_fixes_dir}" || return 1
     tar czf "dump.tgz" ./* --remove-files
@@ -606,6 +731,222 @@ wmui_generate_fixes_zip_from_template() {
   wmui_generate_fixes_zip_from_list_on_file "${l_template_products_list_file}" "${2}" "${3}" "${4}" "${5}" "${6}"
 }
 
+# Function 28 - Generate all zip files for a list of templates (orchestration function)
+wmui_generate_all_zips_for_templates_list() {
+  # Parameters:
+  # $1 -> templates list (space-separated)
+  # $2 -> OPTIONAL - installer binary location, default ${__wmui_default_installer_bin}
+  # $3 -> OPTIONAL - global output directory (for merged zips), default ${__wmui_default_output_folder}
+  # $4 -> OPTIONAL - per-template products output directory, default ${__wmui_default_output_folder}/products
+  # $5 -> OPTIONAL - per-template fixes output directory, default ${__wmui_default_output_folder}/fixes
+  # $6 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
+  # $7 -> OPTIONAL - fixes date tag, default current date
+  # $8 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
+  # $9 -> OPTIONAL - update manager bootstrap binary, default ${__wmui_default_umgr_bin}
+  # $10 -> OPTIONAL - useLatest flag, default ${__wmui_default_use_latest}
+
+  local l_templates_list="${1}"
+  local l_installer_bin="${2:-${__wmui_default_installer_bin}}"
+  local l_global_output_dir="${3:-${__wmui_default_output_folder}}"
+  local l_per_template_products_dir="${4:-${__wmui_default_output_folder}/products}"
+  local l_per_template_fixes_dir="${5:-${__wmui_default_output_folder}/fixes}"
+  local l_platform_string="${6:-${__wmui_default_platform_string}}"
+  local l_crt_date
+  l_crt_date="$(date +%y-%m-%d)"
+  local l_fixes_tag="${7:-$l_crt_date}"
+  local l_umgr_home="${8:-${__wmui_default_umgr_home}}"
+  local l_umgr_bootstrap_bin="${9:-${__wmui_default_umgr_bin}}"
+  local l_use_latest="${10:-${__wmui_default_use_latest}}"
+
+  if [ -z "$l_templates_list" ]; then
+    pu_log_e "WMUI|28| Templates list is required"
+    return 1
+  fi
+
+  # Count templates
+  local l_template_count
+  l_template_count=$(echo "$l_templates_list" | wc -w)
+
+  pu_log_i "WMUI|28| Generating zip files for ${l_template_count} template(s): ${l_templates_list}"
+
+  if [ "$l_template_count" -eq 1 ]; then
+    # Single template: Skip Phase 1, generate only per-template zips
+    pu_log_i "WMUI|28| Single template detected - skipping global zip generation"
+    pu_log_i "WMUI|28| Generating per-template zips directly"
+
+    for l_template in $l_templates_list; do
+      local l_template_products_dir="${l_per_template_products_dir}/${l_template}"
+      local l_template_fixes_base="${l_per_template_fixes_dir}/${l_template}"
+
+      # Generate products zip for template
+      pu_log_i "WMUI|28| Generating products zip for template ${l_template}"
+      mkdir -p "${l_template_products_dir}"
+      wmui_generate_products_zip_from_template \
+        "${l_template}" \
+        "${l_installer_bin}" \
+        "${l_template_products_dir}" \
+        "${l_platform_string}" \
+        "${l_use_latest}"
+
+      if [ $? -ne 0 ]; then
+        pu_log_e "WMUI|28| Failed to generate products zip for template ${l_template}"
+        return 2
+      fi
+
+      # Generate fixes zip for template
+      pu_log_i "WMUI|28| Generating fixes zip for template ${l_template}"
+      mkdir -p "${l_template_fixes_base}"
+      wmui_generate_fixes_zip_from_template \
+        "${l_template}" \
+        "${l_template_fixes_base}" \
+        "${l_fixes_tag}" \
+        "${l_platform_string}" \
+        "${l_umgr_home}" \
+        "${l_umgr_bootstrap_bin}" \
+        "${l_use_latest}"
+
+      if [ $? -ne 0 ]; then
+        pu_log_e "WMUI|28| Failed to generate fixes zip for template ${l_template}"
+        return 3
+      fi
+    done
+
+    pu_log_i "WMUI|28| Successfully generated per-template zips for single template"
+    return 0
+
+  else
+    # Multiple templates: Execute both phases
+    pu_log_i "WMUI|28| Multiple templates detected - executing two-phase generation"
+
+    # Phase 1: Generate global (merged) zips
+    pu_log_i "WMUI|28| Phase 1: Generating global zips for ${l_template_count} templates"
+
+    # Create temporary file for merged products list
+    local l_epoch
+    l_epoch=$(date +%s)
+    local l_temp_merged_list="/tmp/wmui_merged_products_${l_epoch}.txt"
+    local l_temp_inventory="/tmp/wmui_inventory_${l_epoch}.json"
+
+    # Collect all product list files
+    local l_product_list_files=""
+    for l_template in $l_templates_list; do
+      local l_template_list_file
+      l_template_list_file=$(wmui_get_product_list_of_template "${l_template}" "${l_use_latest}")
+      if [ $? -ne 0 ]; then
+        pu_log_e "WMUI|28| Failed to get product list for template ${l_template}"
+        rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+        return 4
+      fi
+      l_product_list_files="${l_product_list_files} ${l_template_list_file}"
+    done
+
+    # Merge all product lists using Function 07
+    # shellcheck disable=SC2086
+    wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files}
+    if [ $? -ne 0 ]; then
+      pu_log_e "WMUI|28| Failed to merge product lists"
+      rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+      return 5
+    fi
+
+    # Generate inventory from merged list
+    wmui_generate_inventory_from_products_list \
+      "${l_temp_merged_list}" \
+      "${l_temp_inventory}" \
+      "" \
+      "${l_platform_string}"
+    if [ $? -ne 0 ]; then
+      pu_log_e "WMUI|28| Failed to generate inventory from merged products list"
+      rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+      return 6
+    fi
+
+    # Generate global products zip
+    local l_products_csv
+    l_products_csv=$(pu_lines_to_csv "${l_temp_merged_list}")
+
+    mkdir -p "${l_global_output_dir}"
+    wmui_generate_products_zip_from_list \
+      "${l_products_csv}" \
+      "${l_installer_bin}" \
+      "${l_global_output_dir}" \
+      "${l_platform_string}"
+
+    if [ $? -ne 0 ]; then
+      pu_log_e "WMUI|28| Failed to generate global products zip"
+      rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+      return 7
+    fi
+
+    # Set global products zip as cache for Phase 2
+    local l_global_products_zip="${l_global_output_dir}/products.zip"
+    echo "${l_global_products_zip}" > "${__wmui_temp_fs_quick}/productsImagesList.txt"
+    pu_log_i "WMUI|28| Global products zip set as cache: ${l_global_products_zip}"
+
+    # Generate global fixes zip
+    wmui_generate_fixes_zip_from_list_on_file \
+      "${l_temp_merged_list}" \
+      "${l_global_output_dir}" \
+      "${l_fixes_tag}" \
+      "${l_platform_string}" \
+      "${l_umgr_home}" \
+      "${l_umgr_bootstrap_bin}"
+
+    if [ $? -ne 0 ]; then
+      pu_log_e "WMUI|28| Failed to generate global fixes zip"
+      rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+      return 8
+    fi
+
+    # Cleanup temporary files
+    rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
+
+    pu_log_i "WMUI|28| Phase 1 complete - global zips generated"
+
+    # Phase 2: Generate per-template zips
+    pu_log_i "WMUI|28| Phase 2: Generating per-template zips"
+
+    for l_template in $l_templates_list; do
+      local l_template_products_dir="${l_per_template_products_dir}/${l_template}"
+      local l_template_fixes_base="${l_per_template_fixes_dir}/${l_template}"
+
+      # Generate products zip for template (will use cache from Phase 1)
+      pu_log_i "WMUI|28| Generating products zip for template ${l_template}"
+      mkdir -p "${l_template_products_dir}"
+      wmui_generate_products_zip_from_template \
+        "${l_template}" \
+        "${l_installer_bin}" \
+        "${l_template_products_dir}" \
+        "${l_platform_string}" \
+        "${l_use_latest}"
+
+      if [ $? -ne 0 ]; then
+        pu_log_w "WMUI|28| Failed to generate products zip for template ${l_template}, continuing..."
+      fi
+
+      # Generate fixes zip for template
+      pu_log_i "WMUI|28| Generating fixes zip for template ${l_template}"
+      mkdir -p "${l_template_fixes_base}"
+      wmui_generate_fixes_zip_from_template \
+        "${l_template}" \
+        "${l_template_fixes_base}" \
+        "${l_fixes_tag}" \
+        "${l_platform_string}" \
+        "${l_umgr_home}" \
+        "${l_umgr_bootstrap_bin}" \
+        "${l_use_latest}"
+
+      if [ $? -ne 0 ]; then
+        pu_log_w "WMUI|28| Failed to generate fixes zip for template ${l_template}, continuing..."
+      fi
+    done
+
+    pu_log_i "WMUI|28| Phase 2 complete - per-template zips generated"
+    pu_log_i "WMUI|28| Successfully generated all zips for ${l_template_count} templates"
+    return 0
+  fi
+}
+
 ######### Functions 41 - 50 - setup functions
 
 # Function 41 - bootstrap update manager from binary file
@@ -646,13 +987,19 @@ wmui_bootstrap_umgr() {
   fi
   pu_audited_exec "${l_bootstrap_cmd}" "upd-mgr-bootstrap"
   local l_res_cexec=$?
-
-  if [ ${l_res_cexec} -eq 0 ]; then
-    pu_log_i "WMUI|41| UPD_MGR Bootstrap successful"
-  else
+  # TODO: this is 0 even if setup fails. To investigate
+  if [ ${l_res_cexec} -ne 0 ]; then
     pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, code ${l_res_cexec}"
     return 3
   fi
+
+  if [ ! -d "${l_umgr_home}/UpdateManager" ]; then
+    pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, without returning an error code. Check audit files for issues."
+    return 4
+  fi
+
+  pu_log_i "WMUI|41| UPD_MGR Bootstrap successful"
+  return 0
 }
 
 # Function 42 - patch existing update manager installation
@@ -666,7 +1013,8 @@ wmui_patch_umgr() {
   fi
 
   if [ ! -f "${1}" ]; then
-    pu_log_e "WMUI|42| Fixes images file ${1} does not exist!"
+    pu_log_w "WMUI|42| Fixes images file ${1} does not exist! Skipping patching..."
+    return 0
   fi
   local l_umgr_home="${2:-${__wmui_default_umgr_home}}"
 
