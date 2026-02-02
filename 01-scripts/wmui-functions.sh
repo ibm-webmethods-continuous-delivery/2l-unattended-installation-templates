@@ -356,7 +356,7 @@ wmui_generate_inventory_from_products_list() {
 
 ######### Functions 21 - 30 - zip files generation
 
-# Function 21 - Generate products-${l_output_file_name_suffix}.zip image file from a list of products
+# Function 21 - Generate products.zip image file from a list of products
 # TODO: a subset of function 22. To refactor.
 wmui_generate_products_zip_from_list(){
   # Parameters
@@ -364,9 +364,6 @@ wmui_generate_products_zip_from_list(){
   # $2 -> OPTIONAL - installer binary location, default ${__wmui_default_installer_bin}
   # $3 -> OPTIONAL - output folder, default ${__wmui_default_output_folder}
   # $4 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
-  # $5 -> OPTIONAL - output file name suffix, default 'latest'
-
-  local l_output_file_name_suffix="${5:-latest}"
 
   pu_log_i "WMUI|21| Addressing products image for a given csv list..."
   pu_log_d "WMUI|21| InstallProducts=${1}"
@@ -377,7 +374,8 @@ wmui_generate_products_zip_from_list(){
     wmui_assure_default_installer "${l_installer_bin}" || return 1
   fi
   local l_output_folder="${3:-${__wmui_default_output_folder}}"
-  local l_products_zip="${l_output_folder}/products-${l_output_file_name_suffix}.zip"
+  pu_log_d "WMUI|21| l_output_folder=${l_output_folder}"
+  local l_products_zip="${l_output_folder}/products.zip"
   local l_dbg_log="${l_output_folder}/product_zip_creation_debug.log"
   local l_img_creation_script="${l_output_folder}/createProductZipImage.wmscript"
   local l_products_csv="${1:-${__wmui_default_products_csv}}"
@@ -490,7 +488,7 @@ wmui_generate_products_zip_from_template() {
   # Parameters
   # $1 -> setup template
   # $2 -> OPTIONAL - installer binary location, default /tmp/installer.bin
-  # $3 -> OPTIONAL - output folder, default /tmp/images
+  # $3 -> OPTIONAL - output folder, default /tmp/images/products
   # $4 -> OPTIONAL - platform string, default LNXAMD64
   # $5 -> OPTIONAL - useLatest (true/false), default true. If true, uses products-latest-list.txt, otherwise uses products-versioned-list.txt
 
@@ -502,13 +500,17 @@ wmui_generate_products_zip_from_template() {
   # l_template_products_list_file already contains the full path from Function 05
   l_products_csv=$(pu_lines_to_csv "${l_template_products_list_file}")
 
-  local l_output_file_name_suffix='versioned'
-  if [ "${5}" = "true" ]; then
-    l_output_file_name_suffix='latest'
-  fi
+  local l_output_folder_specialization='versioned'
+    if [ "${5}" = "true" ]; then
+      l_output_folder_specialization='latest'
+    fi
+
+  local l_output_folder="${3:-/tmp/images/products}/${1}/${l_output_folder_specialization}"
+  pu_log_d "WMUI|23| Products image for setup template ${1} will be generated in ${l_output_folder}..."
+  mkdir -p "${l_output_folder}"
 
   wmui_generate_products_zip_from_list \
-    "${l_products_csv}" "${2}" "${3}" "${4}" ${l_output_file_name_suffix}
+    "${l_products_csv}" "${2}" "${l_output_folder}" "${4}"
 }
 
 # Function 23 - Generating a products image zip file for a list of templates
@@ -551,15 +553,16 @@ wmui_generate_products_zip_from_templates_list() {
     l_product_list_files="${l_product_list_files} ${l_template_list_file}"
   done
 
-  local l_output_file_name_suffix='versioned'
+  local l_output_folder_specialization='versioned'
     if [ "${l_use_latest}" = "true" ]; then
-      l_output_file_name_suffix='latest'
+      l_output_folder_specialization='latest'
     fi
+
+  mkdir -p "${l_output_folder}/${l_output_folder_specialization}"
 
   # Merge all product lists using Function 07
   # shellcheck disable=SC2086
-  wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files}
-  if [ $? -ne 0 ]; then
+  if ! wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files} ; then
     pu_log_e "WMUI|23| Failed to merge product lists"
     rm -f "${l_temp_merged_list}"
     return 3
@@ -573,9 +576,8 @@ wmui_generate_products_zip_from_templates_list() {
   wmui_generate_products_zip_from_list \
     "${l_products_csv}" \
     "${l_installer_bin}" \
-    "${l_output_folder}" \
-    "${l_platform_string}" \
-    "${l_output_file_name_suffix}"
+    "${l_output_folder}/${l_output_folder_specialization}" \
+    "${l_platform_string}"
   local l_result=$?
 
   # Cleanup
@@ -591,7 +593,6 @@ wmui_generate_products_zip_from_templates_list() {
 }
 
 # Function 26 - Generating fixes zip file for list of products
-# TODO: it is a subset of the current function 27
 wmui_generate_fixes_zip_from_list_on_file() {
   # Parameters
   # $1 -> file containing the product list
@@ -600,7 +601,6 @@ wmui_generate_fixes_zip_from_list_on_file() {
   # $4 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
   # $5 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
   # $6 -> OPTIONAL - upd-mgr-bootstrap binary location, default ${__wmui_default_umgr_bin}
-  # $7 -> OPTIONAL - fixes image file name suffix, default 'latest'
 
   local l_products_list_file="${1:-${__wmui_default_products_csv}}"
   if [ "${l_products_list_file}" = "${__wmui_default_products_csv}" ]; then
@@ -617,9 +617,8 @@ wmui_generate_fixes_zip_from_list_on_file() {
 
   local l_output_dir="${2:-${__wmui_default_output_folder_fixes}}"
   local l_fixes_dir="${l_output_dir}/${l_fixes_tag}"
-  local l_output_file_name_suffix="${7:-latest}"
   mkdir -p "${l_fixes_dir}"
-  local l_fixes_image_file="${l_fixes_dir}/fixes-${l_output_file_name_suffix}.zip"
+  local l_fixes_image_file="${l_fixes_dir}/fixes.zip"
   local l_permanent_inventory_file="${l_fixes_dir}/inventory.json"
   local l_permanent_script_file="${l_fixes_dir}/createFixesImage.wmscript"
   local l_platform_string="${4:-${__wmui_default_platform_string}}"
@@ -731,7 +730,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
   fi
 
   cd "${l_crt_dir}" || return 5
-  pu_log_i "WMUI|26| Fix image creation for template ${1} finished successfully"
+  pu_log_i "WMUI|26| Fix image creation for product list file ${1} finished successfully"
 
 }
 
@@ -745,12 +744,29 @@ wmui_generate_fixes_zip_from_template() {
   # $4 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
   # $5 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
   # $6 -> OPTIONAL - upd-mgr-bootstrap binary location, default ${__wmui_default_umgr_bin}
-  # $7 -> OPTIONAL: useLatest (true/false), default ${__wmui_default_use_latest}. If true, uses ProductsLatestList.txt, otherwise uses products-versioned-list.txt
+  # $7 -> OPTIONAL - use-latest (true/false), default ${__wmui_default_use_latest}. If true, uses products-latest-list.txt, otherwise uses products-versioned-list.txt
 
   pu_log_i "WMUI|27| Addressing fixes image for setup template ${1}..."
-  local l_template_products_list_file
+  local l_template_products_list_file l_use_latest l_output_dir
   l_template_products_list_file=$(wmui_get_product_list_of_template "${1}" "${7}")
-  wmui_generate_fixes_zip_from_list_on_file "${l_template_products_list_file}" "${2}" "${3}" "${4}" "${5}" "${6}"
+  l_use_latest=${7:-true}
+  pu_log_d "WMUI|27| l_use_latest=${l_use_latest};l_template_products_list_file=${l_template_products_list_file}"
+
+  local l_output_folder_specialization='versioned'
+    if [ "${7}" = "true" ]; then
+      l_output_folder_specialization='latest'
+    fi
+
+  l_output_dir="${2:-${__wmui_default_output_folder_fixes}}/${l_output_folder_specialization}"
+  mkdir -p "${l_output_dir}"
+
+  if ! wmui_generate_fixes_zip_from_list_on_file \
+        "${l_template_products_list_file}" \
+        "${l_output_dir}" \
+        "${3}" "${4}" "${5}" "${6}" ; then
+    pu_log_e "WMUI|27| ERROR: Failed to generate fixes image for setup template ${1}."
+    return 1
+  fi
 }
 
 # Function 28 - Generate all zip files for a list of templates (orchestration function)
@@ -766,10 +782,10 @@ wmui_generate_all_zips_for_templates_list() {
   # $8 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
   # $9 -> OPTIONAL - update manager bootstrap binary, default ${__wmui_default_umgr_bin}
   # $10 -> OPTIONAL - useLatest flag, default ${__wmui_default_use_latest}
+  # $11 -> OPTIONAL - unified images only, default false
 
   local l_templates_list="${1}"
   local l_installer_bin="${2:-${__wmui_default_installer_bin}}"
-  local l_global_output_dir="${3:-${__wmui_default_output_folder}}"
   local l_per_template_products_dir="${4:-${__wmui_default_output_folder}/products}"
   local l_per_template_fixes_dir="${5:-${__wmui_default_output_folder}/fixes}"
   local l_platform_string="${6:-${__wmui_default_platform_string}}"
@@ -779,12 +795,13 @@ wmui_generate_all_zips_for_templates_list() {
   local l_umgr_home="${8:-${__wmui_default_umgr_home}}"
   local l_umgr_bootstrap_bin="${9:-${__wmui_default_umgr_bin}}"
   local l_use_latest="${10:-${__wmui_default_use_latest}}"
-  local l_output_file_name_suffix='versioned'
+  local l_output_folder_specialization='versioned'
+    if [ "${l_use_latest}" = "true" ] ; then
+      pu_log_i "WMUI|28| Using latest products"
+      l_output_folder_specialization='latest'
+    fi
 
-  if [ "${l_use_latest}" = "true" ] ; then
-    pu_log_i "WMUI|28| Using latest products"
-    l_output_file_name_suffix='latest'
-  fi
+  local l_global_output_dir="${3:-${__wmui_default_output_folder}}/${l_output_folder_specialization}"
 
   if [ -z "$l_templates_list" ]; then
     pu_log_e "WMUI|28| Templates list is required"
@@ -803,16 +820,15 @@ wmui_generate_all_zips_for_templates_list() {
     pu_log_i "WMUI|28| Generating per-template zips directly"
 
     for l_template in $l_templates_list; do
-      local l_template_products_dir="${l_per_template_products_dir}/${l_template}"
       local l_template_fixes_base="${l_per_template_fixes_dir}/${l_template}"
 
       # Generate products zip for template
       pu_log_i "WMUI|28| Generating products zip for template ${l_template}"
-      mkdir -p "${l_template_products_dir}"
+      mkdir -p "${l_per_template_products_dir}"
       if ! wmui_generate_products_zip_from_template \
         "${l_template}" \
         "${l_installer_bin}" \
-        "${l_template_products_dir}" \
+        "${l_per_template_products_dir}" \
         "${l_platform_string}" \
         "${l_use_latest}" ; then
         pu_log_e "WMUI|28| Failed to generate products zip for template ${l_template}"
@@ -869,7 +885,7 @@ wmui_generate_all_zips_for_templates_list() {
     # shellcheck disable=SC2086
     if ! wmui_merge_product_lists \
       "${l_temp_merged_list}" \
-      "${l_product_list_files}" ; then
+      ${l_product_list_files} ; then
       pu_log_e "WMUI|28| Failed to merge product lists"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 5
@@ -895,28 +911,25 @@ wmui_generate_all_zips_for_templates_list() {
       "${l_products_csv}" \
       "${l_installer_bin}" \
       "${l_global_output_dir}" \
-      "${l_platform_string}" \
-      "${l_output_file_name_suffix}"; then
+      "${l_platform_string}"; then
       pu_log_e "WMUI|28| Failed to generate global products zip"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 7
     fi
 
     # Set global products zip as cache for Phase 2
-    local l_global_products_zip="${l_global_output_dir}/products-${l_output_file_name_suffix}.zip"
+    local l_global_products_zip="${l_global_output_dir}/products.zip"
     echo "${l_global_products_zip}" > "${__wmui_temp_fs_quick}/productsImagesList.txt"
     pu_log_i "WMUI|28| Global products zip set as cache: ${l_global_products_zip}"
 
     # Generate global fixes zip
-    wmui_generate_fixes_zip_from_list_on_file \
+    if ! wmui_generate_fixes_zip_from_list_on_file \
       "${l_temp_merged_list}" \
       "${l_global_output_dir}" \
       "${l_fixes_tag}" \
       "${l_platform_string}" \
       "${l_umgr_home}" \
-      "${l_umgr_bootstrap_bin}"
-
-    if [ $? -ne 0 ]; then
+      "${l_umgr_bootstrap_bin}" ; then
       pu_log_e "WMUI|28| Failed to generate global fixes zip"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 8
@@ -927,45 +940,44 @@ wmui_generate_all_zips_for_templates_list() {
 
     pu_log_i "WMUI|28| Phase 1 complete - global zips generated"
 
-    # Phase 2: Generate per-template zips
-    pu_log_i "WMUI|28| Phase 2: Generating per-template zips"
+    pu_log_d "WMUI|28| param 11=${11}"
 
-    for l_template in $l_templates_list; do
-      local l_template_products_dir="${l_per_template_products_dir}/${l_template}"
-      local l_template_fixes_base="${l_per_template_fixes_dir}/${l_template}"
+    if [ ! "${11}" = "true " ]; then
+      # Phase 2: Generate per-template zips
+      pu_log_i "WMUI|28| Phase 2: Generating per-template zips"
 
-      # Generate products zip for template (will use cache from Phase 1)
-      pu_log_i "WMUI|28| Generating products zip for template ${l_template}"
-      mkdir -p "${l_template_products_dir}"
-      wmui_generate_products_zip_from_template \
-        "${l_template}" \
-        "${l_installer_bin}" \
-        "${l_template_products_dir}" \
-        "${l_platform_string}" \
-        "${l_use_latest}"
+      for l_template in $l_templates_list; do
+        local l_template_fixes_base="${l_per_template_fixes_dir}/${l_template}"
 
-      if [ $? -ne 0 ]; then
-        pu_log_w "WMUI|28| Failed to generate products zip for template ${l_template}, continuing..."
-      fi
+        # Generate products zip for template (will use cache from Phase 1)
+        pu_log_i "WMUI|28| Generating products zip for template ${l_template}"
+        mkdir -p "${l_per_template_products_dir}"
+        if ! wmui_generate_products_zip_from_template \
+          "${l_template}" \
+          "${l_installer_bin}" \
+          "${l_per_template_products_dir}" \
+          "${l_platform_string}" \
+          "${l_use_latest}" ; then
+          pu_log_w "WMUI|28| Failed to generate products zip for template ${l_template}, continuing..."
+        fi
 
-      # Generate fixes zip for template
-      pu_log_i "WMUI|28| Generating fixes zip for template ${l_template}"
-      mkdir -p "${l_template_fixes_base}"
-      wmui_generate_fixes_zip_from_template \
-        "${l_template}" \
-        "${l_template_fixes_base}" \
-        "${l_fixes_tag}" \
-        "${l_platform_string}" \
-        "${l_umgr_home}" \
-        "${l_umgr_bootstrap_bin}" \
-        "${l_use_latest}"
+        # Generate fixes zip for template
+        pu_log_i "WMUI|28| Generating fixes zip for template ${l_template}"
+        mkdir -p "${l_template_fixes_base}"
+        if ! wmui_generate_fixes_zip_from_template \
+          "${l_template}" \
+          "${l_template_fixes_base}" \
+          "${l_fixes_tag}" \
+          "${l_platform_string}" \
+          "${l_umgr_home}" \
+          "${l_umgr_bootstrap_bin}" \
+          "${l_use_latest}" ; then
+          pu_log_w "WMUI|28| Failed to generate fixes zip for template ${l_template}, continuing..."
+        fi
+      done
+      pu_log_i "WMUI|28| Phase 2 complete - per-template zips generated"
+    fi
 
-      if [ $? -ne 0 ]; then
-        pu_log_w "WMUI|28| Failed to generate fixes zip for template ${l_template}, continuing..."
-      fi
-    done
-
-    pu_log_i "WMUI|28| Phase 2 complete - per-template zips generated"
     pu_log_i "WMUI|28| Successfully generated all zips for ${l_template_count} templates"
     return 0
   fi

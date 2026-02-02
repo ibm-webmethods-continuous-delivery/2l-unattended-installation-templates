@@ -33,4 +33,5 @@ services:
       - WMUI_TEST_Templates
       - WMUI_TEST_UMGR_BOOTSTRAP_BIN
       - WMUI_TEST_USE_LATEST_PRODUCTS_LIST
+      - WMUI_TEST_UNION_ZIPS_ONLY
     entrypoint: ${WMUI_TEST_SCRIPTS_DIR}/entrypoint.sh

@@ -87,7 +87,8 @@ _make_images() {
     "${WMUI_FIXES_DATE_TAG}" \
     "${WMUI_TEST_UMGR_HOME_DIR}" \
     "${WMUI_TEST_UMGR_BOOTSTRAP_BIN}" \
-    "${WMUI_TEST_USE_LATEST_PRODUCTS_LIST}"
+    "${WMUI_TEST_USE_LATEST_PRODUCTS_LIST}" \
+    "${WMUI_TEST_UNION_ZIPS_ONLY}" \
 
   local l_result=$?
 
