@@ -61,7 +61,9 @@ The framework supports two operating modes:
 
 ### Template Structure
 
-Setup templates follow a standardized structure in `02.templates/01.setup/`:
+#### Setup Templates
+
+Setup templates follow a standardized structure in `02-templates/01-setup/`:
 
 ```
 <Product>/<Version>/<Variant>/
@@ -71,6 +73,30 @@ Setup templates follow a standardized structure in `02.templates/01.setup/`:
 ├── setEnvDefaults.sh         # Optional: Environment variable defaults
 └── checkPrerequisites.sh     # Optional: Custom prerequisite checks
 ```
+
+#### Post-Setup Templates
+
+Post-setup templates follow a standardized structure in `02-templates/02-post-setup/`:
+
+```
+<category>/<version>/<action>/
+├── 01-set-env-defaults.sh     # Environment variable defaults (optional)
+├── 02-check-prerequisites.sh  # Prerequisites validation (optional)
+├── 03-apply.sh                # Main execution logic (required)
+└── README.md                  # Template documentation (recommended)
+```
+
+**Post-Setup Variable Convention:**
+All post-setup template variables **MUST** use the `WMUI_PST_` prefix:
+- `WMUI_PST_DB_SERVER_HOSTNAME` - Database server hostname
+- `WMUI_PST_DB_SERVER_PORT` - Database server port
+- `WMUI_PST_DBC_COMPONENT_NAME` - Component name
+- etc.
+
+This distinguishes them from:
+- Setup template variables: `WMUI_WMSCRIPT_*`
+- Test harness variables: `WMUI_TEST_*`
+- Framework variables: `WMUI_*` (no infix)
 
 ### Product List Management
 
@@ -230,13 +256,30 @@ The scripts follow a "use before reuse" principle. Reusability with other versio
 
 For detailed troubleshooting, see [reference.md - Troubleshooting](./reference.md#troubleshooting).
 
+## Naming Conventions
+
+### File and Folder Names
+- All file and folder names **MUST** use lowercase with dash separators
+- Examples: `01-scripts`, `02-templates`, `03-test`, `docker-compose.yml`
+- Never use dots as separators (e.g., `02.templates` is incorrect)
+- Never use underscores in folder names (use dashes instead)
+
+### Variable Naming Prefixes
+- **Setup templates**: `WMUI_WMSCRIPT_*` (e.g., `WMUI_WMSCRIPT_InstallDir`)
+- **Post-setup templates**: `WMUI_PST_*` (e.g., `WMUI_PST_DB_SERVER_HOSTNAME`)
+- **Test harness**: `WMUI_TEST_*` (e.g., `WMUI_TEST_DB_SERVER_HOSTNAME`)
+- **Framework**: `WMUI_*` without infix (e.g., `WMUI_HOME`, `WMUI_ONLINE_MODE`)
+
+### Deprecated Variable Names
+- `WMUI_INSTALL_INSTALL_DIR` → Use `WMUI_WMSCRIPT_InstallDir` instead
+
 ## Related Documentation
 
 - **Coding Conventions**: [coding-conventions.md](./coding-conventions.md)
 - **Function Reference**: [reference.md](./reference.md)
 - **POSIX Utils**: [../../2l-posix-shell-utils/](../../2l-posix-shell-utils/)
-- **Templates**: [../02.templates/](../02.templates/)
+- **Templates**: [../02-templates/](../02-templates/)
 
 ---
 
-**Last Updated**: 2026-01-28
+**Last Updated**: 2026-02-02

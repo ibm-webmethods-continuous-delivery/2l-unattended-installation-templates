@@ -1,0 +1,84 @@
+volumes:
+  db-data: {}
+  audit: {}
+  sum-home: {}
+  wm-dbc-home: {}
+  user-home: {}
+networks:
+    n1:
+      external: false
+services:
+  db:
+    image: ${WMUI_TEST_POSTGRESQL_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${WMUI_TEST_DB_SERVER_USER_NAME}
+      - POSTGRES_PASSWORD=${WMUI_TEST_DB_SERVER_PASSWORD}
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_TEST_DB_SERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${WMUI_TEST_PORT_PREFIX}32:5432"
+    # ATTN: volume mount path depends on postgres image version
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+  adminer:
+    image: adminer
+    container_name: on-postgres1-adminer
+    hostname: adminer
+    networks:
+      - n1
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+  dbc:
+    image: vm-emu-min-local-wmui-u:ubi9
+    container_name: dbc-1101-esb-01-test-1
+    hostname: ${WMUI_WMSCRIPT_HostName}
+    volumes:
+      - audit:/var/webmethods/audit
+      - sum-home:/opt/wm-umgr
+      - wm-dbc-home:/opt/webmethods
+      - user-home:/home/webmethods
+      - ./scripts/:/mnt/scripts
+      - ${H_WMUI_HOME}:/opt/iwcd/wmui
+      - ${H_WMUI_TEST_ARTIFACTS}:/mnt/artifacts
+    environment:
+      # Mandatory framework variables for setting up products via templates
+      - WMUI_WMSCRIPT_HostName
+      - WMUI_WMSCRIPT_imageFile
+      - WMUI_WMSCRIPT_InstallDir
+      # Test harness file locations
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_TEST_FIXES_IMAGE_FILE
+      # Posix Utilities Level Options for this test harness
+      - PU_ONLINE_MODE
+      - PU_DEBUG_MODE
+      # WMUI Level Options for this test harness
+      - WMUI_PRODUCT_ONLINE_MODE
+      # Database configuration
+      - WMUI_TEST_DB_SERVER_HOSTNAME
+      - WMUI_TEST_DB_SERVER_DATABASE_NAME
+      - WMUI_TEST_DB_SERVER_USER_NAME
+      - WMUI_TEST_DB_SERVER_PASSWORD
+      - WMUI_TEST_DB_SERVER_PORT
+      - WMUI_TEST_DBC_COMPONENT_NAME
+      - WMUI_TEST_DBC_COMPONENT_VERSION
+      - WMUI_TEST_PORT_PREFIX
+    networks:
+      - n1
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: /mnt/scripts/containerEntrypoint.sh

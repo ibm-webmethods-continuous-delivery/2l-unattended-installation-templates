@@ -1013,7 +1013,15 @@ wmui_bootstrap_umgr() {
     return 0
   fi
 
-  local l_bootstrap_cmd="${l_umgr_bin} --accept-license -d "'"'"${l_umgr_home}"'"'
+  local l_work_dir
+  l_work_dir="/tmp/wmui-bootstrap-$(date +%s)"
+
+  mkdir -p "${l_work_dir}" || return $?
+
+  cp "${l_umgr_bin}" "${l_work_dir}/umgr-bootstrap.bin"
+  chmod u+x "${l_work_dir}/umgr-bootstrap.bin"
+
+  local l_bootstrap_cmd="${l_work_dir}/umgr-bootstrap.bin --accept-license -d "'"'"${l_umgr_home}"'"'
   if [ "${__wmui_product_online_mode}" = "true" ]; then
     pu_log_i "WMUI|41| Bootstrapping UPD_MGR from ${l_umgr_bin} into ${l_umgr_home} using ONLINE mode"
   else
@@ -1025,16 +1033,17 @@ wmui_bootstrap_umgr() {
   local l_res_cexec=$?
   # TODO: this is 0 even if setup fails. To investigate
   if [ ${l_res_cexec} -ne 0 ]; then
-    pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, code ${l_res_cexec}"
+    pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, code ${l_res_cexec}. Check audit files and folder ${l_work_dir} for issues."
     return 3
   fi
 
   if [ ! -d "${l_umgr_home}/UpdateManager" ]; then
-    pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, without returning an error code. Check audit files for issues."
+    pu_log_e "WMUI|41| UPD_MGR Bootstrap failed, without returning an error code. Check audit files and folder ${l_work_dir} for issues."
     return 4
   fi
 
   pu_log_i "WMUI|41| UPD_MGR Bootstrap successful"
+  rm -rf "${l_work_dir}"
   return 0
 }
 
@@ -1072,7 +1081,6 @@ wmui_patch_umgr() {
   cd "${l_crt_dir}" || return 3
 }
 
-
 # Function 43 - Install products
 wmui_install_products() {
   # Parameters
@@ -1093,9 +1101,16 @@ wmui_install_products() {
 
   pu_log_i "WMUI|43| Installing according to script ${2}"
 
+  local l_work_dir
+  l_work_dir="/tmp/wm-install/$(date '+%s')"
+  mkdir -p "${l_work_dir}" || return 3
+
+  cp "${1}" "${l_work_dir}/installer.bin"
+  chmod u+x "${l_work_dir}/installer.bin"
+
   local l_debug_level="${3:-${__wmui_default_debug_level}}"
 
-  local l_install_cmd="${1} -readScript \"${1}\" -console"
+  local l_install_cmd="${l_work_dir}/installer.bin -readScript \"${2}\" -console"
   l_install_cmd="${l_install_cmd} -debugLvl ${l_debug_level}"
   if [ "${__1__debug_mode}" = "true" ]; then
     l_install_cmd="${l_install_cmd} -scriptErrorInteract yes"
@@ -1103,6 +1118,7 @@ wmui_install_products() {
     l_install_cmd="${l_install_cmd} -scriptErrorInteract no"
   fi
   l_install_cmd="${l_install_cmd} -debugFile "'"'"${__2__audit_session_dir}/debugInstall.log"'"'
+  pu_log_d "WMUI|43| Installation command is: ${l_install_cmd}"
   pu_audited_exec "${l_install_cmd}" "product-install"
 
   l_result_install_products=$?
@@ -1110,15 +1126,13 @@ wmui_install_products() {
     pu_log_i "WMUI|43| Product installation successful"
   else
     pu_log_e "WMUI|43| Product installation failed, code ${l_result_install_products}"
-    pu_log_d "WMUI|43| Dumping the install.wmscript file into the session audit folder..."
-    if [ "${__1__debug_mode}" = "true" ]; then
-      cp "${1}" "${__2__audit_session_dir}/"
-    fi
     pu_log_e "WMUI|43| Looking for APP_ERROR in the debug file..."
     grep 'APP_ERROR' "${__2__audit_session_dir}/debugInstall.log"
     pu_log_e "WMUI|43| returning code 4"
     return 4
   fi
+
+  rm -rf "${l_work_dir}"
 }
 
 # Function 44 - Patch installation
@@ -1269,8 +1283,8 @@ wmui_remove_diagnoser_patch() {
 wmui_setup_products_and_fixes_from_template() {
   # Parameters
   # $1 - Template id
-  # $2 - use latest versions
-  # $3 - OPTIONAL: Installer binary location, default passthrough to wmui_install_products
+  # $2 - OPTIONAL: use latest versions (default passthrough to wmui_install_template_products)
+  # $3 - OPTIONAL: Installer binary location, default passthrough to wmui_install_template_products
   # $4 - OPTIONAL: debugLevel for installer, default verbose
   # $5 - OPTIONAL: fixes file image. Absent means skip patching
   # $6 - OPTIONAL: Update manager home, default ${__wmui_default_umgr_home}
@@ -1320,9 +1334,8 @@ wmui_install_template_products() {
       l_prerequisite_errors=$((l_prerequisite_errors + 1))
     fi
 
-    pu_log_i "WMUI|47| Setup products for template ${2}, use latest: ${l_use_latest}, debugLevel: ${l_dbg_lvl}"
-    if ! wmui_hunt_for_file "02-templates/01-setup/${2}" "template.wmscript" ; then
-      pu_log_e "WMUI|47| Setup for template ${2} failed, file not found. is [${2}] an existing template?"
+    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "template.wmscript" ; then
+      pu_log_e "WMUI|47| Setup for template ${1} failed, file not found. is [${1}] an existing template?"
       l_prerequisite_errors=$((l_prerequisite_errors + 1))
     fi
 
@@ -1331,8 +1344,8 @@ wmui_install_template_products() {
       return 1
     fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${2}" "check-prerequisites.sh" ; then
-      pu_log_w "WMUI|47| Cannot find check-prerequisites.sh for template [${2}]. Ignoring prerequisites check..."
+    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "check-prerequisites.sh" ; then
+      pu_log_w "WMUI|47| Cannot find check-prerequisites.sh for template [${1}]. Ignoring prerequisites check..."
     else
       if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/check-prerequisites.sh" ]; then
         pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
@@ -1343,16 +1356,16 @@ wmui_install_template_products() {
       fi
     fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${2}" "set-env-defaults.sh" ; then
-      pu_log_w "WMUI|47| Cannot find set-env-defaults.sh for template [${2}]. Using framework's defaults..."
+    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "set-env-defaults.sh" ; then
+      pu_log_w "WMUI|47| Cannot find set-env-defaults.sh for template [${1}]. Using framework's defaults..."
     else
-      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${2}/set-env-defaults.sh" ]; then
-        pu_log_i "WMUI|47| Applying post-setup defaults for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${2}/set-env-defaults.sh" >/dev/null
+      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" ]; then
+        pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
+        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" >/dev/null
         # shellcheck source=/dev/null
-        . "${__wmui_cache_home}/02-templates/01-setup/${2}/set-env-defaults.sh" || return 4
+        . "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" || return 4
       else
-        pu_log_w "WMUI|47| set-env-defaults.sh for template [${2}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
+        pu_log_w "WMUI|47| set-env-defaults.sh for template [${1}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
       fi
     fi
 
@@ -1366,6 +1379,8 @@ wmui_install_template_products() {
     l_use_latest="${3:-true}"
     l_products_file=$(wmui_get_product_list_of_template "${1}" "${2}")
     l_d=$(date +%s)
+
+    pu_log_i "WMUI|47| Setup products for template ${1}, use latest: ${l_use_latest}"
 
     # Create temporary enhanced template with InstallProducts line
     l_temp_enhanced_template="${__2__audit_session_dir}/template_enhanced_${l_d}.wmscript"
@@ -1401,28 +1416,41 @@ wmui_apply_post_setup_template() {
   # Parameters
   # $1 - Setup template directory, relative to <repo_home>/02-templates/02.post-setup
 
-  pu_log_i "WMUI|61| Applying post-setup template ${1}"
-  wmui_hunt_for_file "02-templates/02.post-setup/${1}" "apply.sh"
-  local l_result_wmui_hunt_for_file=$?
-  if [ ${l_result_wmui_hunt_for_file} -ne 0 ]; then
-    pu_log_e "WMUI|61| File ${__wmui_cache_home}/02-templates/02.post-setup/${1}/apply.sh not found!"
-    return 1
-  fi
-  chmod u+x "${__wmui_cache_home}/02-templates/02.post-setup/${1}/apply.sh"
-  local l_result_chmod=$?
-  if [ ${l_result_chmod} -ne 0 ]; then
-    pu_log_w "WMUI|61| chmod command for apply.sh failed. This is not always a problem, continuing"
-  fi
-  pu_log_i "WMUI|61| Calling apply.sh for template ${1}"
-  "${__wmui_cache_home}/02-templates/02.post-setup/${1}/apply.sh"
-  local l_result_apply=$?
-  if [ ${l_result_apply} -ne 0 ]; then
-    pu_log_e "WMUI|61| Application of post-setup template ${1} failed, code ${l_result_apply}"
-    return 3
-  fi
-  pu_log_i "WMUI|61| Post setup template ${1} applied successfully"
+  pu_log_i "WMUI|47| Applying post-setup template ${1}..."
+
+  ## Part 01 - defaults
+    if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "01-set-env-defaults.sh" ; then
+      pu_log_d "WMUI|47| 01-set-env-defaults.sh found, using it to set defaults..."
+      # shellcheck disable=SC1090
+      . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/01-set-env-defaults.sh"
+    else
+      pu_log_w "WMUI|47| 01-set-env-defaults.sh not found, no defaults considered!"
+    fi
+
+  ## Part 02 - prerequisites
+    if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "02-check-prerequisites.sh" ; then
+      pu_log_d "WMUI|47| 02-check-prerequisites.sh found, calling..."
+      # shellcheck disable=SC1090
+      . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/02-check-prerequisites.sh"
+    else
+      pu_log_w "WMUI|47| 02-check-prerequisites.sh not found, no prerequisites considered!"
+    fi
+
+  ## Part 03 - apply
+    if ! wmui_hunt_for_file "02-templates/02-post-setup/${1}" "03-apply.sh" ; then
+      pu_log_e "WMUI|61| File ${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh not found!"
+      return 1
+    fi
+
+    pu_log_i "WMUI|61| Applying post-setup template ${1}"
+    # shellcheck disable=SC1090
+    if ! . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh" ; then
+      pu_log_e "WMUI|61| Application of post-setup template ${1} failed, code $?"
+      return 3
+    fi
+    pu_log_i "WMUI|61| Post setup template ${1} applied successfully"
+    return 0
 }
 
 pu_log_d "WMUI|--| wmui-functions.sh initialized"
 pu_log_d "WMUI|--| Using posix utils audit folder __2__audit_session_dir=${__2__audit_session_dir}"
-
