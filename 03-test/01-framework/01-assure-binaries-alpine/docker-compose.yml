@@ -1,0 +1,16 @@
+services:
+  d:
+    # downloader service
+    image: alpine
+    volumes:
+      - ${H_PU_HOME}:${TEST_PU_HOME}
+      - ../../../:${TEST_WMUI_HOME}
+      - ./scripts/:/mnt/scripts
+      - ${H_WMUI_ARTIFACTS_DIR}:${TEST_ARTIFACTS_HOME}
+    environment:
+      - PU_HOME=${TEST_PU_HOME}
+      - WMUI_HOME=${TEST_WMUI_HOME}
+      - TEST_INSTALLER_BIN=${TEST_ARTIFACTS_HOME}/default-installer.bin
+      - TEST_UMGR_BIN=${TEST_ARTIFACTS_HOME}/default-umgr-bootstrap.bin
+    entrypoint: /mnt/scripts/entrypoint.sh
+

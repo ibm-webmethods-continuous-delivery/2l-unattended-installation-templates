@@ -1,0 +1,6 @@
+# Authored
+HostName=${WMUI_WMSCRIPT_HostName}
+imageFile=${WMUI_WMSCRIPT_imageFile}
+InstallDir=${WMUI_WMSCRIPT_InstallDir}
+selectedFixes=
+ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
