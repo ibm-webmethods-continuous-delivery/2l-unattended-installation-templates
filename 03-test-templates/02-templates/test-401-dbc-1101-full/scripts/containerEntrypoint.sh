@@ -1,5 +1,8 @@
 #!/bin/sh
-
+#
+# Copyright IBM Corp. 2025 - 2025
+# SPDX-License-Identifier: Apache-2.0
+#
 # This script sets up the DBC installation and creates database components
 
 # shellcheck disable=SC3043

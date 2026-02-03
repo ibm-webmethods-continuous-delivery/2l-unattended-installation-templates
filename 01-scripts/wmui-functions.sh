@@ -123,7 +123,7 @@ wmui_assure_default_installer() {
     return 1
   fi
   pu_log_d "WMUI|03| Default installer correctly assured in ${l_installer_bin}"
-  chmod u+x "${l_installer_bin}"
+  chmod u+x "${l_installer_bin}" 2>/dev/null
   return 0
 }
 
@@ -139,7 +139,7 @@ wmui_assure_default_umgr_bin() {
     return 1
   fi
   pu_log_d "WMUI|04| Default update manager correctly assured in ${l_umgr_bin}"
-  chmod u+x "${l_umgr_bin}"
+  chmod u+x "${l_umgr_bin}" 2>/dev/null
   return 0
 }
 
@@ -445,7 +445,7 @@ wmui_generate_products_zip_from_list(){
   ## TODO: not space safe, but it shouldn't matter for now
   local l_temp_installer_bin="/tmp/installer-${l_epoch}.bin"
   cp "${l_installer_bin}" "${l_temp_installer_bin}"
-  chmod u+x "${l_temp_installer_bin}"
+  chmod u+x "${l_temp_installer_bin}" 2>/dev/null
   local l_cmd="${l_temp_installer_bin} -console -readScript ${l_ephemeral_script}"
   # shellcheck disable=SC2154
   if [ "${__1__debug_mode}" = "true" ]; then
@@ -1019,7 +1019,7 @@ wmui_bootstrap_umgr() {
   mkdir -p "${l_work_dir}" || return $?
 
   cp "${l_umgr_bin}" "${l_work_dir}/umgr-bootstrap.bin"
-  chmod u+x "${l_work_dir}/umgr-bootstrap.bin"
+  chmod u+x "${l_work_dir}/umgr-bootstrap.bin" 2>/dev/null
 
   local l_bootstrap_cmd="${l_work_dir}/umgr-bootstrap.bin --accept-license -d "'"'"${l_umgr_home}"'"'
   if [ "${__wmui_product_online_mode}" = "true" ]; then
@@ -1106,7 +1106,7 @@ wmui_install_products() {
   mkdir -p "${l_work_dir}" || return 3
 
   cp "${1}" "${l_work_dir}/installer.bin"
-  chmod u+x "${l_work_dir}/installer.bin"
+  chmod u+x "${l_work_dir}/installer.bin" 2> /dev/null
 
   local l_debug_level="${3:-${__wmui_default_debug_level}}"
 
@@ -1349,7 +1349,7 @@ wmui_install_template_products() {
     else
       if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" ]; then
         pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" >/dev/null
+        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" 2>/dev/null
         # shellcheck source=/dev/null
         . "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" || return 4
       else
@@ -1362,7 +1362,7 @@ wmui_install_template_products() {
     else
       if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" ]; then
         pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" >/dev/null
+        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" 2>/dev/null
         # shellcheck source=/dev/null
         . "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" || return 3
       else
@@ -1408,6 +1408,17 @@ wmui_install_template_products() {
     fi
 
   return 0
+}
+
+# Function 48 Display all environment variables related to wmscript templates
+wmui_log_wmscript_env() {
+  # Shows PU-prefixed environment variables to console and audit log
+  pu_log_i "WMUI|48| >>>>>>>>>>>>>>>> Begin Listing WMUI_WMSCRIPT_ environment variables:"
+  pu_log_i "WMUI|48| >>>>>>>>>>>> WMUI_WMSCRIPT_ global public constants:"
+  env | grep WMUI_WMSCRIPT_ | grep -vi _PASS | sort
+  # shellcheck disable=SC2154
+  env | grep WMUI_WMSCRIPT_ | grep -vi _PASS | sort >>"${__2__audit_session_file}"
+  pu_log_i "WMUI|48| >>>>>>>>>>>>>>>> End Listing PU environment variables"
 }
 
 ######## Functions 61+ Post setup ########

@@ -1,5 +1,8 @@
 #!/bin/sh
-
+#
+# Copyright IBM Corp. 2025 - 2025
+# SPDX-License-Identifier: Apache-2.0
+#
 microdnf -y install which
 
 # Source Posix Utilities
