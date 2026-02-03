@@ -1,0 +1,36 @@
+volumes:
+  audit: {}
+  sum-home: {}
+  wm-dbc-home: {}
+  user-home: {}
+services:
+  msr:
+    image: vm-emu-min-local-wmui-u:ubi9
+    container_name: test-402-msr
+    hostname: ${WMUI_WMSCRIPT_HostName}
+    volumes:
+      - audit:/var/webmethods/audit
+      - sum-home:/opt/wm-umgr
+      - wm-dbc-home:/opt/webmethods
+      - user-home:/home/webmethods
+      - ./scripts/:/mnt/scripts
+      - ${H_WMUI_HOME}:/opt/iwcd/wmui
+      - ${H_WMUI_TEST_ARTIFACTS}:/mnt/artifacts
+    environment:
+      # Mandatory framework variables for setting up products via templates
+      - WMUI_WMSCRIPT_HostName
+      - WMUI_WMSCRIPT_imageFile
+      - WMUI_WMSCRIPT_InstallDir
+      # Test harness file locations
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_TEST_FIXES_IMAGE_FILE
+      # Posix Utilities Level Options for this test harness
+      - PU_ONLINE_MODE
+      - PU_DEBUG_MODE
+      # WMUI Level Options for this test harness
+      - WMUI_PRODUCT_ONLINE_MODE
+      - WMUI_TEST_PORT_PREFIX
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}55:5555"
+    entrypoint: /mnt/scripts/containerEntrypoint.sh

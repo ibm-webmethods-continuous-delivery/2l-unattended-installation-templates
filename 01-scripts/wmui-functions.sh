@@ -1344,28 +1344,29 @@ wmui_install_template_products() {
       return 1
     fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "check-prerequisites.sh" ; then
-      pu_log_w "WMUI|47| Cannot find check-prerequisites.sh for template [${1}]. Ignoring prerequisites check..."
+    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "01-set-env-defaults.sh" ; then
+      pu_log_w "WMUI|47| Cannot find 01-set-env-defaults.sh for template [${1}]. Using framework's defaults..."
     else
-      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/check-prerequisites.sh" ]; then
-        pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/check-prerequisites.sh" >/dev/null
-        "${__wmui_cache_home}/02-templates/01-setup/${1}/check-prerequisites.sh" || return 3
+      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" ]; then
+        pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
+        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" >/dev/null
+        # shellcheck source=/dev/null
+        . "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" || return 4
       else
-        pu_log_w "WMUI|47| Check prerequisites script not present even after successful hunting. This should not happen. Skipping check..."
+        pu_log_w "WMUI|47| 01-set-env-defaults.sh for template [${1}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
       fi
     fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "set-env-defaults.sh" ; then
-      pu_log_w "WMUI|47| Cannot find set-env-defaults.sh for template [${1}]. Using framework's defaults..."
+    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "02-check-prerequisites.sh" ; then
+      pu_log_w "WMUI|47| Cannot find 02-check-prerequisites.sh for template [${1}]. Ignoring prerequisites check..."
     else
-      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" ]; then
-        pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" >/dev/null
+      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" ]; then
+        pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
+        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" >/dev/null
         # shellcheck source=/dev/null
-        . "${__wmui_cache_home}/02-templates/01-setup/${1}/set-env-defaults.sh" || return 4
+        . "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" || return 3
       else
-        pu_log_w "WMUI|47| set-env-defaults.sh for template [${1}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
+        pu_log_w "WMUI|47| Check prerequisites script not present even after successful hunting. This should not happen. Skipping check..."
       fi
     fi
 

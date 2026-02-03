@@ -67,11 +67,11 @@ Setup templates follow a standardized structure in `02-templates/01-setup/`:
 
 ```
 <Product>/<Version>/<Variant>/
-├── template.wmscript          # Installation script (MUST NOT contain InstallProducts)
-├── products-latest-list.txt     # Latest product versions (one per line)
-├── products-versioned-list.txt  # Specific product versions (one per line)
-├── setEnvDefaults.sh         # Optional: Environment variable defaults
-└── checkPrerequisites.sh     # Optional: Custom prerequisite checks
+├── template.wmscript             # Installation script (MUST NOT contain InstallProducts)
+├── products-latest-list.txt      # Latest product versions (one per line)
+├── products-versioned-list.txt   # Specific product versions (one per line)
+├── 01-set-env-defaults.sh        # Optional: Environment variable defaults
+└── 02-check-prerequisites.sh     # Optional: Custom prerequisite checks
 ```
 
 #### Post-Setup Templates
@@ -138,7 +138,7 @@ TaskEngineRuntimeUrlName=${WMUI_WMSCRIPT_TaskEngineRuntimeUrlName}
 - `WMUI_WMSCRIPT_imageFile` - Path to products image file
 - `WMUI_WMSCRIPT_InstallDir` - Installation directory path
 
-**Template-Specific Variables**: Each template may require additional variables. Check the template's `setEnvDefaults.sh` file for defaults and required variables.
+**Template-Specific Variables**: Each template may require additional variables. Check the template's `01-set-env-defaults.sh` file for defaults and required variables.
 
 **Note**: The framework uses these variables directly from the environment, eliminating redundant extraction from wmscript files. Ensure all required variables are set before calling `wmui_apply_setup_template()`.
 

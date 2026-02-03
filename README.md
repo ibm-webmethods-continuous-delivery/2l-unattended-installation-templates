@@ -50,8 +50,8 @@ Setup templates are organized in a hierarchical folder structure under [02-templ
 - **Template Files**: Each template folder contains:
   - `template.wmscript` - Core installation script (required)
   - `ProductsLatestList.txt` or `ProductsVersionedList.txt` - Product lists (required)
-  - `setEnvDefaults.sh` - Default environment variables (optional)
-  - `checkPrerequisites.sh` - Prerequisites validation script (optional)
+  - `01-set-env-defaults.sh` - Default environment variables (optional)
+  - `02-check-prerequisites.sh` - Prerequisites validation script (optional)
   - Installer view files - Configuration for installer interface (optional)
 
 **Examples:**

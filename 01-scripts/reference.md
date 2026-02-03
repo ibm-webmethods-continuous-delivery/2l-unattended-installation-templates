@@ -580,7 +580,7 @@ Generates JSON inventory file compatible with Update Manager.
 - `WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN` - Update Manager bootstrap path
 - `WMUI_PATCH_FIXES_IMAGE_FILE` - Fixes image path
 - `WMUI_UPD_MGR_HOME` - Update Manager home
-- Template-specific variables (defined in template's `setEnvDefaults.sh`)
+- Template-specific variables (defined in template's `01-set-env-defaults.sh`)
 
 **Return Codes**:
 - `0` - Success
@@ -594,8 +594,8 @@ Generates JSON inventory file compatible with Update Manager.
 1. Downloads template.wmscript
 2. Downloads appropriate products list file (latest or versioned)
 3. Creates enhanced template with `InstallProducts` line
-4. Sources `setEnvDefaults.sh` if present
-5. Runs `checkPrerequisites.sh` if present
+4. Sources `01-set-env-defaults.sh` if present
+5. Runs `02-check-prerequisites.sh` if present
 6. Calls `wmui_setup_products_and_fixes`
 
 **Template Structure**:
@@ -604,8 +604,8 @@ Generates JSON inventory file compatible with Update Manager.
 ├── template.wmscript          # MUST NOT contain InstallProducts line
 ├── ProductsLatestList.txt     # Latest product versions
 ├── ProductsVersionedList.txt  # Specific product versions
-├── setEnvDefaults.sh         # Optional: Environment defaults
-└── checkPrerequisites.sh     # Optional: Prerequisites check
+├── 01-set-env-defaults.sh    # Optional: Environment defaults
+└── 02-check-prerequisites.sh # Optional: Prerequisites check
 ```
 
 **Notes**:
