@@ -4,7 +4,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS installer
 
 # Bumpable tags or versions
 ARG __pu_tag=v0.1.5
-ARG __wmui_tag=v0.0.2
+ARG __wmui_tag=v0.0.4
 
 # Temporary until buildah fix will be available: one argument for ARG
 ARG __i_bin=/tmp/installer.bin

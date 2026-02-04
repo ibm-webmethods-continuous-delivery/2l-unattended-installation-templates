@@ -27,9 +27,9 @@ In order to set properties, for example the executable flag on .sh files, look a
 
 For a more specific example, where `jcode.sh` Integration Server compiling tool must have access to package folders, see the instructions [here](https://github.com/ibm-webmethods-continuous-delivery/5s-pub-sub-with-mon-01/blob/main/02-build/README.md#procedures) and eventually adapt for your specific situation.
 
-Then, the user may immediately obtain the installation and patching binary files by using one of the test harnesses in `03-test/framework/assure-binaries`, for example  `03-test/framework/assure-binaries/alpine`.
+Then, the user may immediately obtain the installation and patching binary files by using one of the test harnesses in `03-test/01-framework/01-assure-binaries*`, for example  `03-test/01-framework/01-assure-binaries-alpine`.
 
-According to the user purpose, the next step is about downloading the product binaries. Use the harnesses in folder `03-test/framework/build-zip-images` to download the necessary images, according to the templates of interest.
+According to the user purpose, the next step is about downloading the product binaries. Use the harnesses in folder `03-test/01-framework/03-build-zip-images-ubi` to download the necessary images, according to the templates of interest.
 
 ## Folders
 
@@ -55,9 +55,9 @@ Setup templates are organized in a hierarchical folder structure under [02-templ
   - Installer view files - Configuration for installer interface (optional)
 
 **Examples:**
-- Template ID: `APIGateway/1101/default` → Located at `02-templates/01-setup/APIGateway/1101/default/template.wmscript`
-- Template ID: `APIGateway/1101/wpm-e2e-cu-postgres` → Located at `02-templates/01-setup/APIGateway/1101/wpm-e2e-cu-postgres/template.wmscript`
-- Template ID: `DBC/1101/full` → Located at `02-templates/01-setup/DBC/1101/full/template.wmscript`
+- Template ID: `api-gateway/1101/default` → Located at `02-templates/01-setup/api-gateway/1101/default/template.wmscript`
+- Template ID: `api-gateway/1101/wpm-e2e-cu-postgres` → Located at `02-templates/01-setup/api-gateway/1101/wpm-e2e-cu-postgres/template.wmscript`
+- Template ID: `dbc/1101/full` → Located at `02-templates/01-setup/dbc/1101/full/template.wmscript`
 
 #### 02-templates-02-post-setup
 

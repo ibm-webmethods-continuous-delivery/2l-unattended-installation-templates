@@ -1,0 +1,8 @@
+services:
+  alpine-set-exe:
+    image: local/alpine-with-find
+    build:
+      context: ./build
+      dockerfile: Dockerfile
+    volumes:
+      - ../../:/mnt/wmui/

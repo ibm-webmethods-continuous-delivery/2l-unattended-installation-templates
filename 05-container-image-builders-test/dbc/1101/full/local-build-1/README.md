@@ -4,7 +4,7 @@ This is a test harness for the container build template `04-container-image-buil
 
 ## Windows (e.g. with Rancher Desktop)
 
-- Procure the product and fix images first. See the [root README-s quickstart](../../../../README.md#quick-start) instructions
+- Procure the product and fix images first. See the [root README-s quickstart](../../../../../README.md#quick-start) instructions
 - Copy `example.set-env.bat` into `set-env.bat`
 - Edit `set-env.bat` to point to the files you downloaded
 - run `run-test-local.bat`
