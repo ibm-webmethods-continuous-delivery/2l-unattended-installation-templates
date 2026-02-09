@@ -4,12 +4,12 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS installer
 
 # Bumpable tags or versions
 ARG __pu_tag=v0.1.5
-ARG __wmui_tag=v0.0.4
+ARG __wmui_tag=v0.0.5
 
 # Temporary until buildah fix will be available: one argument for ARG
 ARG __i_bin=/tmp/installer.bin
 ARG __u_bin=/tmp/upd-mgr-bootstrap.bin
-ARG __wm_install_home=/opt/webmethods/dbc/1011/full
+ARG __wm_install_home=/opt/webmethods/dbc/1101/full
 ARG __wm_install_template=dbc/1101/full
 
 RUN microdnf -y update &&\
@@ -48,7 +48,7 @@ RUN cd /tmp/install && chmod u+x ./install.sh && ./install.sh
 
 FROM alpine:latest AS jre-packager-and-picker
 
-ARG __wm_install_home=/opt/webmethods/dbc/1011/full
+ARG __wm_install_home=/opt/webmethods/dbc/1101/full
 
 RUN apk --no-cache add openjdk17-jdk openjdk17-jmods binutils
 
@@ -67,10 +67,10 @@ COPY --from=installer ${__wm_install_home}/build-time-audit.tgz ${__wm_install_h
 
 FROM ${__from_img}
 
-ARG __wm_install_home=/opt/webmethods/dbc/1011/full
+ARG __wm_install_home=/opt/webmethods/dbc/1101/full
 
-ARG __wm_user_id=1824
-ARG __wm_grp_id=1824
+ARG __wm_user_id=1001
+ARG __wm_grp_id=1001
 ARG __wm_grp_name=webmethods
 ARG __wm_user_name=webmethods
 
