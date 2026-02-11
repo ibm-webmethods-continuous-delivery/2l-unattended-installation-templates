@@ -1,0 +1,33 @@
+volumes:
+  ipg1-audit-home: {}
+  ipg1-install-home: {}
+  ipg1-upd-mgr-home: {}
+  ipg1-user-home: {}
+services:
+  ipg1:
+    image: ${WMUI_CONTAINER_IMAGE}
+    container_name: install-playground-ubi
+    hostname: install-playground-ubi
+    volumes:
+      # the following must match the Dockerfile folders, otherwise permissions on FS will not work
+      - ipg1-install-home:${WMUI_WMSCRIPT_InstallDir}/
+      - ipg1-user-home:${WMUI_TEST_USER_HOME}/
+      - ipg1-upd-mgr-home:${WMUI_TEST_UMGR_HOME_DIR}/
+      - ipg1-audit-home:${WMUI_TEST_AUDIT_DIR}/
+      - ./scripts/:${WMUI_TEST_SCRIPTS_DIR}/
+      - ${H_WMUI_HOME}/:${WMUI_TEST_WMUI_HOME_DIR}/
+      # These must be provided, they are prerequisites
+      - ${H_WMUI_TEST_ARTIFACTS}/:${WMUI_TEST_ARTIFACTS_DIR}/
+    environment:
+      # WMUI Base variables
+      # commonFunctions
+      - PU_DEBUG_MODE=true
+      # this test runs online
+      - WMUI_PRODUCT_ONLINE_MODE=true
+      # setupFunctions
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_WMSCRIPT_InstallDir
+      - WMUI_TEST_ARTIFACTS_DIR
+      # even when not using SPM, installer / update manager are spinning it up nonetheless
+    entrypoint: ${WMUI_TEST_SCRIPTS_DIR}/containerEntrypoint.sh
