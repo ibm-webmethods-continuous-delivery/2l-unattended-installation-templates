@@ -1,0 +1,59 @@
+volumes:
+  db-data:
+    name: test-403-db-data
+  dbc-logs:
+    name: test-403-dbc-logs
+
+networks:
+  n1:
+    external: false
+
+services:
+  db:
+    image: ${WMUI_ORACLE_IMAGE}
+    container_name: test-403-db
+    hostname: db
+    volumes:
+      - db-data:${WMUI_ORACLE_DATA_MOUNT_POINT}
+      - ./scripts/init/ora/scripts:/opt/oracle/scripts/startup
+    environment:
+      - ORACLE_CHARACTERSET=AL32UTF8
+      # - ORACLE_PDB
+      # - ORACLE_PWD
+    networks:
+      n1:
+        aliases:
+          - db
+    healthcheck:
+      test: ["CMD", "bash", "-c", "if [ $(echo 'SELECT 1 from dual;' | sqlplus ${WMUI_WM_ARCHIVE_DB_USER_NAME}/${WMUI_WM_ARCHIVE_DB_USER_PASS} | grep -c ERROR) -gt 0 ]; then exit 1; fi"]
+      interval: 20s
+      timeout: 20s
+      retries: 60
+
+  dbc:
+    image: ${WMUI_DBC_IMAGE}
+    volumes:
+      - dbc-logs:${WMUI_DBC_LOGS_MOUNT_POINT}
+      - ./scripts/init/dbc/:${WMUI_DBC_SCRIPTS_MOUNT_POINT}
+    networks:
+      - n1
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - WMUI_DBC_WM_HOME
+      - WMUI_ORACLE_DATA_MOUNT_POINT
+      - WMUI_WM_ARCHIVE_DB_NAME
+      - WMUI_WM_ARCHIVE_DB_USER_NAME
+      - WMUI_WM_ARCHIVE_DB_USER_PASS
+      - WMUI_WM_DB_NAME
+      - WMUI_WM_DB_USER_NAME
+      - WMUI_WM_DB_USER_PASS
+      - ORACLE_CDB
+      - ORACLE_PDB
+      - ORACLE_PWD
+    env_file:
+      - dbc.env
+    entrypoint: ${WMUI_DBC_SCRIPTS_MOUNT_POINT}/entrypoint.sh
+
+# Made with Bob

@@ -1,0 +1,109 @@
+volumes:
+  audit:
+    name: test-403-audit
+  sum-home:
+    name: test-403-sum-home
+  wm-msr-home:
+    name: test-403-wm-msr-home
+  user-home:
+    name: test-403-user-home
+  db-data:
+    name: test-403-db-data
+
+networks:
+  n1:
+    external: false
+    name: test-403-n1
+
+services:
+  db:
+    image: ${WMUI_ORACLE_IMAGE}
+    hostname: ${WMUI_TEST_DB_HOSTNAME}
+    container_name: test-403-db
+    environment:
+      - ORACLE_CHARACTERSET=AL32UTF8
+      # ORACLE_PWD is optional, can be set in .env if needed
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_TEST_DB_HOSTNAME}
+    volumes:
+      - db-data:${WMUI_ORACLE_DATA_MOUNT_POINT}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 from dual;' | sqlplus ${WMUI_WM_DB_USER_NAME}/${WMUI_WM_DB_USER_PASS}@${ORACLE_CDB} | grep -q '1'"]
+      interval: 20s
+      timeout: 20s
+      retries: 60
+      start_period: 60s
+
+  adminer:
+    image: adminer
+    container_name: test-403-adminer
+    networks:
+      - n1
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  msr:
+    image: vm-emu-min-local-wmui-u:ubi9
+    container_name: test-403-msr
+    hostname: ${WMUI_WMSCRIPT_HostName}
+    volumes:
+      - audit:/var/webmethods/audit
+      - sum-home:/opt/wm-umgr
+      - wm-msr-home:/opt/webmethods
+      - user-home:/home/webmethods
+      - ./scripts/:/mnt/scripts
+      - ${H_WMUI_HOME}:/opt/iwcd/wmui
+      - ${H_WMUI_TEST_ARTIFACTS}:/mnt/artifacts
+    environment:
+      # Mandatory framework variables for setting up products via templates
+      - WMUI_WMSCRIPT_HostName
+      - WMUI_WMSCRIPT_imageFile
+      - WMUI_WMSCRIPT_InstallDir
+      # Test harness file locations
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_TEST_FIXES_IMAGE_FILE
+      # MSR specific ports
+      - WMUI_WMSCRIPT_IntegrationServerPort
+      - WMUI_WMSCRIPT_IntegrationServersecurePort
+      - WMUI_WMSCRIPT_IntegrationServerdiagnosticPort
+      # MSR admin password
+      - WMUI_WMSCRIPT_adminPassword
+      # Database connection for TaskEngine Runtime
+      - TaskEngineRuntimeConnectionName
+      - WMUI_WMSCRIPT_TaskEngineRuntimeDriverName
+      - WMUI_WMSCRIPT_TaskEngineRuntimePasswordName
+      - WMUI_WMSCRIPT_TaskEngineRuntimeUrlName
+      - WMUI_WMSCRIPT_TaskEngineRuntimeUserName
+      - WMUI_TEST_DB_HOSTNAME
+      - WMUI_TEST_DB_PORT
+      - WMUI_TEST_DB_NAME
+      - WMUI_TEST_DB_USER
+      - WMUI_TEST_DB_PASSWORD
+      # Posix Utilities Level Options for this test harness
+      - PU_ONLINE_MODE
+      - PU_DEBUG_MODE
+      # WMUI Level Options for this test harness
+      - WMUI_PRODUCT_ONLINE_MODE
+      - WMUI_TEST_PORT_PREFIX
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}55:5555"
+      - "${WMUI_TEST_PORT_PREFIX}53:5553"
+      - "${WMUI_TEST_PORT_PREFIX}99:9999"
+    networks:
+      - n1
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      interval: 20s
+      retries: 100
+      test: curl -u "Administrator:${WMUI_WMSCRIPT_adminPassword}" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/health
+    entrypoint: /mnt/scripts/containerEntrypoint.sh
+
+# Made with Bob

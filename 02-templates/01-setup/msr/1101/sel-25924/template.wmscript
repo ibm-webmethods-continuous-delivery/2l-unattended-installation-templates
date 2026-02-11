@@ -1,0 +1,42 @@
+# Authored
+IntegrationServerDBblock=0
+selectedFixes=
+TaskEngineRuntimeSampleURLText=0
+IntegrationServerDBUser.Name=__VERSION1__,
+com.wm.distman.utils_panel1=0
+ISExtOrInt=__VERSION1__,2,0,1_,External+RDBMS,Embedded+database
+TaskEngineRuntimeTitleBlock=0
+IntegrationServerNetworkInterface=__VERSION1__,
+IntegrationServerDBURL.Name=__VERSION1__,
+IntegrationServerPool.Name=__VERSION1__,
+ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
+IntegrationServerDBPass.Name=__VERSION1__,
+IntegrationServerNetworkInterfaceBlock=0
+IntegrationServerDBMsgblock=1
+IntegrationServer.RDBMS.Type=__VERSION1__,6,0,1,2,3,4,5_,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+IntegrationServerTitleBlock=0
+TaskEngineRuntimeMsgBlock=0
+IntegrationServerNetworkInterfaceBodyBlock=0
+changeAdminPasswordAtFirstLogin=false
+IntegrationServerSampleURLBlock=1
+TaskEngineRuntimeDBTxt=0
+com.wm.distman.utils_panel0=0
+
+## Parametrized
+## CDS on Postgres
+adminPassword=${WMUI_WMSCRIPT_adminPassword}
+HostName=${WMUI_WMSCRIPT_HostName}
+imageFile=${WMUI_WMSCRIPT_imageFile}
+InstallDir=${WMUI_WMSCRIPT_InstallDir}
+IntegrationServerdiagnosticPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerdiagnosticPort}
+IntegrationServerPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerPort}
+IntegrationServersecurePort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServersecurePort}
+TaskEngineRuntimeConnectionName=__VERSION1__,${TaskEngineRuntimeConnectionName}
+TaskEngineRuntimeDriverName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeDriverName}
+# Example and default value for postgres
+# 6,0,1,2,3,4,5_,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+TaskEngineRuntimePasswordName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimePasswordName}
+TaskEngineRuntimeUrlName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeUrlName}
+# Attention: this value MUST be url-encoded, eventually use the function pu_urlencode upfront
+# Example: jdbc%3Awm%3Apostgresql%3A%2F%2F%3Cserver%3E%3A%3C5432%7Cport%3E%3BDatabaseName%3D%3Cdatabase%3E
+TaskEngineRuntimeUserName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeUserName}
