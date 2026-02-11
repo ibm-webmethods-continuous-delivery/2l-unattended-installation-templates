@@ -1,0 +1,44 @@
+# Authored
+changeAdminPasswordAtFirstLogin=false
+com.wm.distman.utils_panel0=0
+com.wm.distman.utils_panel1=0
+IntegrationServer.RDBMS.Type=__VERSION1__,6,0_,1,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+IntegrationServerDBblock=0
+IntegrationServerDBMsgblock=1
+IntegrationServerDBPass.Name=__VERSION1__,
+IntegrationServerDBURL.Name=__VERSION1__,
+IntegrationServerDBUser.Name=__VERSION1__,
+IntegrationServerNetworkInterface=__VERSION1__,
+IntegrationServerNetworkInterfaceBlock=0
+IntegrationServerNetworkInterfaceBodyBlock=0
+IntegrationServerPool.Name=__VERSION1__,
+IntegrationServerSampleURLBlock=1
+IntegrationServerTitleBlock=0
+ISExtOrInt=__VERSION1__,2,0,1_,External+RDBMS,Embedded+database
+selectedFixes=
+ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
+TaskEngineRuntimeConnectionName=__VERSION1__,CDS
+TaskEngineRuntimeDBTxt=0
+TaskEngineRuntimeMsgBlock=0
+TaskEngineRuntimeSampleURLText=0
+TaskEngineRuntimeTitleBlock=0
+YAITitleTextBlock=0
+
+## Parametrized
+adminPassword=${WMUI_WMSCRIPT_adminPassword}
+HostName=${WMUI_WMSCRIPT_HostName}
+imageFile=${WMUI_WMSCRIPT_imageFile}
+InstallDir=${WMUI_WMSCRIPT_InstallDir}
+IntegrationServerdiagnosticPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerdiagnosticPort}
+IntegrationServerPort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServerPort}
+IntegrationServersecurePort=__VERSION1__,${WMUI_WMSCRIPT_IntegrationServersecurePort}
+YAIHttpPort=__VERSION1__,${WMUI_WMSCRIPT_YAIHttpPort}
+YAIHttpsPort=__VERSION1__,${WMUI_WMSCRIPT_YAIHttpsPort}
+## CDS on Postgres
+TaskEngineRuntimeDriverName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeDriverName}
+# EXAMPLE
+# 6,0,1,2,3,4,5_,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+TaskEngineRuntimeUrlName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeUrlName}
+# Example: jdbc%3Awm%3Apostgresql%3A%2F%2F%3Cserver%3E%3A%3C5432%7Cport%3E%3BDatabaseName%3D%3Cdatabase%3E
+TaskEngineRuntimeUserName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimeUserName}
+TaskEngineRuntimePasswordName=__VERSION1__,${WMUI_WMSCRIPT_TaskEngineRuntimePasswordName}

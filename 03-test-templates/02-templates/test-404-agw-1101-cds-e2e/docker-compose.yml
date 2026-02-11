@@ -1,0 +1,185 @@
+volumes:
+  audit:
+    name: test-404-audit
+  sum-home:
+    name: test-404-sum-home
+  wm-agw-home:
+    name: test-404-wm-agw-home
+  user-home:
+    name: test-404-user-home
+  db-data:
+    name: test-404-db-data
+  esdata:
+    name: test-404-esdata
+
+networks:
+  n1:
+    external: false
+    name: test-404-n1
+
+services:
+  db:
+    image: ${WMUI_ORACLE_IMAGE}
+    hostname: ${WMUI_TEST_DB_HOSTNAME}
+    container_name: test-404-db
+    environment:
+      - ORACLE_CHARACTERSET=AL32UTF8
+      # ORACLE_PWD is optional, can be set in .env if needed
+    networks:
+      n1:
+        aliases:
+          - ${WMUI_TEST_DB_HOSTNAME}
+    volumes:
+      - db-data:${WMUI_ORACLE_DATA_MOUNT_POINT}
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 from dual;' | sqlplus ${WMUI_WM_DB_USER_NAME}/${WMUI_WM_DB_USER_PASS}@${ORACLE_CDB} | grep -q '1'"]
+      interval: 20s
+      timeout: 20s
+      retries: 60
+      start_period: 60s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_TEST_ELK_VERSION}
+    container_name: test-404-elasticsearch
+
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
+      - http.cors.enabled=true
+      - http.cors.allow-origin=/.*/
+      - ELASTIC_USERNAME=${WMUI_TEST_ELASTIC_USERNAME}
+      - ELASTIC_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
+    ports:
+      - ${WMUI_TEST_PORT_PREFIX}20:9200
+    networks:
+      - n1
+    mem_reservation: 1g
+    mem_limit: 1g
+    cpus: 1
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      interval: 20s
+      retries: 10
+      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  # Elasticvue content explorer for elasticsearch, use for observability reasons
+  elasticvue:
+    image: cars10/elasticvue
+    container_name: test-404-elasticvue
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}80:8080"
+    networks:
+      - n1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    mem_reservation: 100m
+    mem_limit: 500m
+    cpus: 1
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${WMUI_TEST_ELK_VERSION}
+    container_name: test-404-kibana
+    depends_on:
+      agw:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_EXTERNAL_HOSTNAME=http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}56
+      - ELASTICSEARCH_USERNAME=${WMUI_TEST_ELASTIC_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
+      - SERVER_BASEPATH=/apigatewayui/dashboardproxy
+      - CONSOLE_ENABLED=false
+    ports:
+      - ${WMUI_TEST_PORT_PREFIX}56:5601
+    networks:
+      - n1
+    healthcheck:
+      interval: 10s
+      retries: 20
+      test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
+    mem_reservation: 200m
+    mem_limit: 1g
+    cpus: 1
+
+  agw:
+    image: vm-emu-min-local-wmui-u:ubi9
+    container_name: test-404-agw
+    hostname: ${WMUI_WMSCRIPT_HostName}
+    volumes:
+      - audit:/var/webmethods/audit
+      - sum-home:/opt/wm-umgr
+      - wm-agw-home:/opt/webmethods
+      - user-home:/home/webmethods
+      - ./scripts/:/mnt/scripts
+      - ${H_WMUI_HOME}:/opt/iwcd/wmui
+      - ${H_WMUI_ARTIFACTS}:/mnt/artifacts
+      - ./config/agw/application.properties:/tmp/application.properties
+    environment:
+      # Mandatory framework variables for setting up products via templates
+      - WMUI_WMSCRIPT_HostName
+      - WMUI_WMSCRIPT_imageFile
+      - WMUI_WMSCRIPT_InstallDir
+      # Test harness file locations
+      - WMUI_TEST_INSTALLER_BIN
+      - WMUI_TEST_UMGR_BOOTSTRAP_BIN
+      - WMUI_TEST_FIXES_IMAGE_FILE
+      # AGW specific ports
+      - WMUI_WMSCRIPT_IntegrationServerPort
+      - WMUI_WMSCRIPT_IntegrationServersecurePort
+      - WMUI_WMSCRIPT_IntegrationServerdiagnosticPort
+      - WMUI_WMSCRIPT_YAIHttpPort
+      - WMUI_WMSCRIPT_YAIHttpsPort
+      # Elasticsearch and Kibana configuration
+      - apigw_elasticsearch_hosts=elasticsearch:9200
+      - apigw_elasticsearch_https_enabled=false
+      - apigw_elasticsearch_http_username=${WMUI_TEST_ELASTIC_USERNAME}
+      - apigw_elasticsearch_http_password=${WMUI_TEST_ELASTIC_PASSWORD}
+      - apigw_kibana_dashboardInstance=http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}56
+
+      - apigw_elasticsearch_tenantId=core
+      - apigw_analyticsDataStore_tenantId=analytics
+      - SAG_IS_CONFIG_PROPERTIES=/tmp/application.properties
+      - WMUI_TEST_ADMIN_PASSWORD
+
+      # Database connection for CDS
+      - WMUI_WMSCRIPT_TaskEngineRuntimeDriverName
+      - WMUI_WMSCRIPT_TaskEngineRuntimePasswordName
+      - WMUI_WMSCRIPT_TaskEngineRuntimeUrlName
+      - WMUI_WMSCRIPT_TaskEngineRuntimeUserName
+      - WMUI_TEST_DB_HOSTNAME
+      - WMUI_TEST_DB_PORT
+      - WMUI_TEST_DB_NAME
+      - WMUI_TEST_DB_USER
+      - WMUI_TEST_DB_PASSWORD
+      # Posix Utilities Level Options for this test harness
+      - PU_ONLINE_MODE
+      - PU_DEBUG_MODE
+      # WMUI Level Options for this test harness
+      - WMUI_PRODUCT_ONLINE_MODE
+      - WMUI_TEST_PORT_PREFIX
+    ports:
+      - "${WMUI_TEST_PORT_PREFIX}55:5555"
+      - "${WMUI_TEST_PORT_PREFIX}72:9072"
+      - "${WMUI_TEST_PORT_PREFIX}73:9073"
+    networks:
+      - n1
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      interval: 20s
+      retries: 100
+      test: curl -u "Administrator:${WMUI_TEST_ADMIN_PASSWORD}" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
+    entrypoint: /mnt/scripts/containerEntrypoint.sh
+
+# Made with Bob
