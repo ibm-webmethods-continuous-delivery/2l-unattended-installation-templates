@@ -1,0 +1,119 @@
+---
+swagger: "2.0"
+info:
+  version: "1.0"
+  title: "genericResource"
+host: "esb:5555"
+basePath: "/rad/wmDemo.Mockup.restResource:genericResource"
+schemes:
+- "http"
+consumes:
+- "application/x-www-form-urlencoded"
+produces:
+- "application/json"
+- "application/xml"
+paths:
+  /genericResource:
+    get:
+      operationId: "genericResource_GET_1"
+      parameters:
+      - name: "sleepIntervalMilliseconds"
+        in: "query"
+        description: "Default 1"
+        required: false
+        type: "number"
+        minimum: 0
+        exclusiveMinimum: false
+      - name: "unmanagedExceptionProbability"
+        in: "query"
+        description: "Default Value 0.01"
+        required: false
+        type: "number"
+        maximum: 1.0
+        exclusiveMaximum: true
+        minimum: 0.0
+        exclusiveMinimum: false
+        format: "float"
+      - name: "managedExceptionProbability"
+        in: "query"
+        description: "Default Value 0.01"
+        required: false
+        type: "number"
+        maximum: 1.0
+        exclusiveMaximum: true
+        minimum: 0.0
+        exclusiveMinimum: false
+        format: "float"
+      - name: "outputBodySize"
+        in: "query"
+        description: "Default 1024"
+        required: false
+        type: "number"
+      responses:
+        "200":
+          description: "OK"
+          schema:
+            $ref: "#/definitions/genericResource_GET_response"
+        "401":
+          description: "Access Denied"
+        "500":
+          description: "Internal Server Error"
+          schema:
+            $ref: "#/definitions/genericResource_GET_response"
+definitions:
+  genericGetResult:
+    type: "object"
+    required:
+    - "actualInput"
+    - "currentHostName"
+    properties:
+      actualInput:
+        $ref: "#/definitions/actualInput"
+      currentHostName:
+        type: "string"
+  actualInput:
+    type: "object"
+    properties:
+      sleepIntervalMilliseconds:
+        type: "number"
+        description: "Default 1"
+        minimum: 0
+        exclusiveMinimum: false
+      unmanagedExceptionProbability:
+        type: "number"
+        format: "float"
+        description: "Default Value 0.01"
+        minimum: 0.0
+        maximum: 1.0
+        exclusiveMinimum: false
+        exclusiveMaximum: true
+      managedExceptionProbability:
+        type: "number"
+        format: "float"
+        description: "Default Value 0.01"
+        minimum: 0.0
+        maximum: 1.0
+        exclusiveMinimum: false
+        exclusiveMaximum: true
+      outputBodySize:
+        type: "number"
+        description: "Default 1024"
+  genericResource_GET_response:
+    type: "object"
+    required:
+    - "bodyString"
+    - "code"
+    - "description"
+    - "genericGetResult"
+    - "uuid"
+    properties:
+      genericGetResult:
+        $ref: "#/definitions/genericGetResult"
+      bodyString:
+        type: "string"
+      code:
+        type: "number"
+      description:
+        type: "string"
+      uuid:
+        type: "string"
