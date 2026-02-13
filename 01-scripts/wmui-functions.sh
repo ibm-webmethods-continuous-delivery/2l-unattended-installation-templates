@@ -1052,7 +1052,7 @@ wmui_patch_umgr() {
   # Parameters - wmui_patch_umgr()
   # $1 - Fixes Image (this will always happen offline in this framework)
   # $2 - OPTIONAL UPD_MGR Home, takes framework default
-  if [ ! "${__wmui_product_online_mode}" = "true" ]; then
+  if [ "${__wmui_product_online_mode}" = "true" ]; then
     pu_log_i "WMUI|42| wmui_patch_umgr() ignored in online mode"
     return 0
   fi
@@ -1180,17 +1180,10 @@ wmui_patch_installation() {
 
   pu_log_i "WMUI|44| Applying fixes from image ${1} to installation ${l_install_dir} using UPD_MGR in ${l_upd_mgr_home}..."
 
-  pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${l_fixes_script_file}\"" "PatchInstallation"
-  local l_res_cexec=$?
-
-  pu_log_i "WMUI|44| Taking a snapshot of fixes after the patching..."
-  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${l_install_dir}"'"' "FixesAfterPatching"
-
-  cd "${l_crt_dir}" || return 4
-
-  if [ ${l_res_cexec} -eq 0 ]; then
+  if pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${l_fixes_script_file}\"" "PatchInstallation" ; then
     pu_log_i "WMUI|44| Patch successful"
   else
+    local l_res_cexec=$?
     pu_log_e "WMUI|44| Patch failed, code ${l_res_cexec}"
     if [ "${__1__debug_mode}" = "true" ]; then
       pu_log_d "WMUI|44| Recovering Update Manager logs for further investigations"
@@ -1199,8 +1192,14 @@ wmui_patch_installation() {
       cp -r "${l_upd_mgr_home}"/UpdateManager/logs "${__2__audit_session_dir}"/UpdateManager/
       cp "${l_fixes_script_file}" "${__2__audit_session_dir}"/
     fi
+    cd "${l_crt_dir}" || return 5
     return 2
   fi
+
+  pu_log_i "WMUI|44| Taking a snapshot of fixes after the patching..."
+  pu_audited_exec './UpdateManagerCMD.sh -action viewInstalledFixes -installDir "'"${l_install_dir}"'"' "FixesAfterPatching"
+
+  cd "${l_crt_dir}" || return 4
 
   if [ "${__1__debug_mode}" = "true" ]; then
     # if we are debugging, we want to see the generated script
