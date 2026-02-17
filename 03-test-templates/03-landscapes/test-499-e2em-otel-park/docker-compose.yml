@@ -1,0 +1,270 @@
+volumes:
+  db-data: {}
+  um-data: {}
+  um-logs: {}
+  esb-vm1-audit: {}
+  esb-vm1-user-home: {}
+  esb-vm1-wm-home: {}
+  esb-vm1-upd-mgr-home: {}
+  apigw-vm1-audit: {}
+  apigw-vm1-user-home: {}
+  apigw-vm1-wm-home: {}
+  apigw-vm1-upd-mgr-home: {}
+  esdata: {}
+networks:
+  n1:
+    external:
+      false
+services:
+  db:
+    image: ${EX99_POSTGRES_IMAGE}
+    restart: always
+    environment:
+      - POSTGRES_USER=${EX99_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${EX99_POSTGRES_PASS}
+      - EX99_DBSERVER_HOSTNAME
+    networks:
+      n1:
+        aliases:
+          - ${EX99_DBSERVER_HOSTNAME}
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${EX99_PORT_PREFIX}32:5432"
+    volumes:
+      - db-data:${EX99_POSTGRES_DATA_MOUNT_POINT}
+    command: -p ${EX99_DBSERVER_PORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+  adminer:
+    image: adminer
+    container_name: ex99-adminer
+    hostname: ex99-adminer
+    networks:
+      - n1
+    ports:
+      - ${EX99_PORT_PREFIX}80:8080
+    depends_on:
+      db:
+        condition: service_healthy
+  um:
+    image: ${EX99_UM_IMAGE}
+    container_name: ex99-um
+    hostname: ex99-um
+    environment:
+      - REALM_NAME=${EX99_UM_REALM_NAME}
+      - INIT_JAVA_MEM_SIZE=256M
+      - MAX_JAVA_MEM_SIZE=512M
+      - MAX_DIRECT_MEM_SIZE=256M
+    # comment out ports, supposed to be used internally only
+    #ports:
+    #  - "${EX99_PORT_PREFIX}99:9000"
+    volumes:
+      - um-data:${EX99_UM_DATA_MOUNT_POINT}
+      - um-logs:${EX99_UM_LOGS_MOUNT_POINT}
+    mem_reservation: 1g
+    mem_limit: 1g
+    networks:
+      - n1
+  # esb:
+  #   build:
+  #     context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+  #     args:
+  #       - __audit_home_dir=${EX99_ESB_AUDIT_MOUNT_POINT}
+  #       - __install_dir=${EX99_ESB_WM_HOME_MOUNT_POINT}
+  #       - __upd_mgr_home_dir=${EX99_ESB_UPD_MGR_HOME_MOUNT_POINT}
+  #       - __user_home=${EX99_ESB_USER_HOME_MOUNT_POINT}
+  #   image: ex99-esb-vm-1
+  #   container_name: ex99-esb-vm
+  #   hostname: ex99-esb-vm
+  #   ulimits:
+  #     nproc: 4096
+  #     nofile: 65536
+  #   volumes:
+  #     - ./config/esb-vm1/:${EX99_ESB_CONFIG_MOUNT_POINT}
+  #     - ./scripts/esb-vm1/:${EX99_ESB_SCRIPTS_MOUNT_POINT}
+  #     - ./config/esb-vm1/application.properties:${EX99_ESB_APP_PROPS_MOUNT_POINT}
+  #     - ${H_WMUI_HOME}:${WMUI_HOME}
+  #     - esb-vm1-audit:${EX99_ESB_AUDIT_MOUNT_POINT}
+  #     - esb-vm1-upd-mgr-home:${EX99_ESB_UPD_MGR_HOME_MOUNT_POINT}
+  #     - esb-vm1-user-home:${EX99_ESB_USER_HOME_MOUNT_POINT}
+  #     - esb-vm1-wm-home:${EX99_ESB_WM_HOME_MOUNT_POINT}
+  #     - ${H_WMUI_INSTALLER_PATH}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+  #     - ${H_WMUI_UPD_MGR_PATH}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+  #     - ${H_WMUI_ESB_PRODUCTS_IMAGE_PATH}:${WMUI_INSTALL_IMAGE_FILE}
+  #     - ${H_WMUI_ESB_FIXES_IMAGE_PATH}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+  #     - ${H_EX99_PUB_SUB_MON_01_REPO_HOME}:${EX99_PUB_SUB_MON_01_REPO_MOUNT_POINT}
+  #   environment:
+  #     - SAG_IS_CONFIG_PROPERTIES=${EX99_ESB_APP_PROPS_MOUNT_POINT}
+  #     # setup parameters
+  #     - WMUI_AUDIT_BASE_DIR=${EX99_ESB_AUDIT_MOUNT_POINT}
+  #     - WMUI_DEBUG_ON
+  #     - WMUI_HOME
+  #     - WMUI_INSTALL_IMAGE_FILE
+  #     - WMUI_INSTALL_INSTALL_DIR=${EX99_ESB_WM_HOME_MOUNT_POINT}
+  #     - WMUI_INSTALL_INSTALLER_BIN
+  #     - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+  #     - EX99_PORT_PREFIX
+  #     - WMUI_ONLINE_MODE
+  #     - WMUI_PATCH_AVAILABLE
+  #     - WMUI_PATCH_FIXES_IMAGE_FILE
+  #     - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+  #     - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+  #     - WMUI_SDC_ONLINE_MODE
+  #     - WMUI_UPD_MGR_HOME=${EX99_ESB_UPD_MGR_HOME_MOUNT_POINT}
+  #     - WMUI_WORK_DIR
+  #     # database parameters
+  #     - EX99_POSTGRESQL_IMAGE
+  #     - EX99_DBSERVER_HOSTNAME
+  #     - EX99_DBSERVER_DATABASE_NAME=${EX99_WM_DB_NAME}
+  #     - EX99_DBSERVER_USER_NAME
+  #     - EX99_DBSERVER_PASSWORD
+  #     - EX99_DBSERVER_PORT
+  #     # CDS setup variables
+  #     - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${EX99_DBSERVER_PASSWORD}
+  #     - WMUI_WMSCRIPT_CDS_DB_USER=${EX99_DBSERVER_USER_NAME}
+  #     - WMUI_WMSCRIPT_CDS_CONN_STRING
+  #     # E2EM variables
+  #     - SW_AGENT_COLLECTOR_ESTABLISH_CLOUD_COMMUNICATION
+  #     - SW_AGENT_EXTERNAL_ESTABLISH_COMMUNICATION
+  #     - SW_AGENT_EXTERNAL_TARGET
+  #     - SW_AGENT_EXTERNAL_TARGET_NAME
+  #     - SW_AGENT_OTEL_ENDPOINT
+  #     - SW_AGENT_OTEL_HEADERS
+  #     - SW_AGENT_EXT_SYSTEM_USER
+  #     - SW_AGENT_EXT_SYSTEM_PASSWORD
+  #     - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
+  #     - EX99_HOST_NAME
+  #     - JAVA_MAX_MEM=384M
+  #     - SW_LOGGING_LEVEL
+  #     ## Application level
+  #     - EX99_PUB_SUB_MON_01_REPO_MOUNT_POINT
+  #     - EX99_ESB_COPY_PUB_SUB_MON_PACKAGES
+  #   ports:
+  #     - "${EX99_PORT_PREFIX}53:5543"
+  #     - "${EX99_PORT_PREFIX}55:5555"
+  #   networks:
+  #     - n1
+  #   depends_on:
+  #     um:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     interval: 10s
+  #     retries: 200
+  #     test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/health
+  #   entrypoint: ${EX99_ESB_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
+  # apigateway:
+  #   build:
+  #     context: ${H_WMUI_HOME}/09.utils/container-images/ubi/vm-emulator
+  #     args:
+  #       - __audit_home_dir=${EX99_APIGW_AUDIT_MOUNT_POINT}
+  #       - __install_dir=${EX99_APIGW_WM_HOME_MOUNT_POINT}
+  #       - __upd_mgr_home_dir=${EX99_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+  #       - __user_home=${EX99_APIGW_USER_HOME_MOUNT_POINT}
+  #   image: ex99-api-gw-vm-1
+  #   container_name: ex99-api-gw-vm
+  #   hostname: ex99-api-gw-vm
+  #   ulimits:
+  #     nproc: 4096
+  #     nofile: 65536
+  #   volumes:
+  #     - ./config/api-gw-vm1/:${EX99_APIGW_CONFIG_MOUNT_POINT}
+  #     - ./scripts/api-gw-vm1/:${EX99_APIGW_SCRIPTS_MOUNT_POINT}
+  #     - ./config/api-gw-vm1/application.properties:${EX99_APIGW_APP_PROPS_MOUNT_POINT}
+  #     - ${H_WMUI_HOME}:${WMUI_HOME}
+  #     - apigw-vm1-audit:${EX99_APIGW_AUDIT_MOUNT_POINT}
+  #     - apigw-vm1-upd-mgr-home:${EX99_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+  #     - apigw-vm1-user-home:${EX99_APIGW_USER_HOME_MOUNT_POINT}
+  #     - apigw-vm1-wm-home:${EX99_APIGW_WM_HOME_MOUNT_POINT}
+  #     - ${H_WMUI_INSTALLER_PATH}:${WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT}
+  #     - ${H_WMUI_UPD_MGR_PATH}:${WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT}
+  #     - ${H_WMUI_APIGW_PRODUCTS_IMAGE_PATH}:${WMUI_INSTALL_IMAGE_FILE}
+  #     - ${H_WMUI_APIGW_FIXES_IMAGE_PATH}:${WMUI_PATCH_FIXES_IMAGE_FILE}
+  #   environment:
+  #     - SAG_IS_CONFIG_PROPERTIES=${EX99_APIGW_APP_PROPS_MOUNT_POINT}
+  #     # setup parameters
+  #     - WMUI_AUDIT_BASE_DIR=${EX99_APIGW_AUDIT_MOUNT_POINT}
+  #     - WMUI_DEBUG_ON
+  #     - WMUI_HOME
+  #     - WMUI_INSTALL_IMAGE_FILE
+  #     - WMUI_INSTALL_INSTALL_DIR=${EX99_APIGW_WM_HOME_MOUNT_POINT}
+  #     - WMUI_INSTALL_INSTALLER_BIN
+  #     - WMUI_INSTALL_INSTALLER_BIN_MOUNT_POINT
+  #     - EX99_PORT_PREFIX
+  #     - WMUI_ONLINE_MODE
+  #     - WMUI_PATCH_AVAILABLE
+  #     - WMUI_PATCH_FIXES_IMAGE_FILE
+  #     - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN
+  #     - WMUI_PATCH_UPD_MGR_BOOTSTRAP_BIN_MOUNT_POINT
+  #     - WMUI_SDC_ONLINE_MODE
+  #     - WMUI_UPD_MGR_HOME=${EX99_APIGW_UPD_MGR_HOME_MOUNT_POINT}
+  #     - WMUI_WORK_DIR
+  #     # database parameters
+  #     - EX99_POSTGRESQL_IMAGE
+  #     - EX99_DBSERVER_HOSTNAME
+  #     - EX99_DBSERVER_DATABASE_NAME=${EX99_WM_DB_NAME}
+  #     - EX99_DBSERVER_USER_NAME
+  #     - EX99_DBSERVER_PASSWORD
+  #     - EX99_DBSERVER_PORT
+  #     # CDS setup variables
+  #     - WMUI_WMSCRIPT_CDS_DB_PASSWORD=${EX99_DBSERVER_PASSWORD}
+  #     - WMUI_WMSCRIPT_CDS_DB_USER=${EX99_DBSERVER_USER_NAME}
+  #     - WMUI_WMSCRIPT_CDS_CONN_STRING
+  #     # Elasticsearch configuration
+  #     - apigw_elasticsearch_hosts=core-elasticsearch:9200
+  #     - apigw_elasticsearch_https_enabled=false
+  #     - apigw_elasticsearch_http_username=${EX99_ELASTIC_USERNAME}
+  #     - apigw_elasticsearch_http_password=${EX99_ELASTIC_PASSWORD}
+  #     # external kibana
+  #     - apigw_kibana_dashboardInstance=${EX99_APIGW_KIBANA_BASE_URL}
+  #     # E2EM variables
+  #     - SW_AGENT_COLLECTOR_ESTABLISH_CLOUD_COMMUNICATION
+  #     - SW_AGENT_EXTERNAL_ESTABLISH_COMMUNICATION
+  #     - SW_AGENT_EXTERNAL_TARGET
+  #     - SW_AGENT_EXTERNAL_TARGET_NAME
+  #     - SW_AGENT_OTEL_ENDPOINT
+  #     - SW_AGENT_OTEL_HEADERS
+  #     - SW_AGENT_EXT_SYSTEM_USER
+  #     - SW_AGENT_EXT_SYSTEM_PASSWORD
+  #     - SW_AGENT_EXTERNAL_SUPPORT_LONG_ID
+  #     - EX99_HOST_NAME
+  #     - JAVA_MAX_MEM=512M
+  #     - EX99_APIGW_ENABLE_E2EM_AGENT
+  #     - SW_LOGGING_LEVEL
+  #   ports:
+  #     - "${EX99_PORT_PREFIX}73:9073"
+  #     - "${EX99_PORT_PREFIX}72:9072"
+  #     - "${EX99_PORT_PREFIX}57:5555"
+  #   networks:
+  #     - n1
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #     core-elasticsearch:
+  #       condition: service_healthy
+  #     esb:
+  #       condition: service_healthy
+  #   entrypoint: ${EX99_APIGW_SCRIPTS_MOUNT_POINT}/containerEntrypoint.sh
+  #   healthcheck:
+  #     interval: 10s
+  #     retries: 200
+  #     test: curl -u "Administrator:manage" --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5555/rest/apigateway/health
+    #cpus: 1
+
+  # otelc:
+  #   profiles:
+  #     - collector
+  #   image: otel/opentelemetry-collector-contrib:0.136.0
+  #   container_name: otelc
+  #   hostname: otelhost
+  #   volumes:
+  #     - ./config/otelc/config.yaml:/etc/otelcol-contrib/config.yaml
+  #     - /tmp/traces.json
+  #   networks:
+  #     - n1
+  #   environment:
+  #     - OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=http/json
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
