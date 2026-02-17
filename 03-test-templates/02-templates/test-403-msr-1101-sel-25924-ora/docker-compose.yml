@@ -36,17 +36,6 @@ services:
       retries: 60
       start_period: 60s
 
-  adminer:
-    image: adminer
-    container_name: test-403-adminer
-    networks:
-      - n1
-    ports:
-      - "${WMUI_TEST_PORT_PREFIX}80:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-
   msr:
     image: vm-emu-min-local-wmui-u:ubi9
     container_name: test-403-msr
