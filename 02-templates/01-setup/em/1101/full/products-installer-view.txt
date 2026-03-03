@@ -1,0 +1,45 @@
+Products:
+  Infrastructure
+      Java
+          Java Package Core 17.0
+      Libraries
+          Shared Libraries 11.1
+          Common Libraries for OpenSSL 11.1
+          Installer Libraries 11.1
+          Migration Framework Libraries 11.1
+          Third-Party Libraries
+              Base Security Libraries 11.1
+              Data Modeling Libraries 11.1
+              Logging Libraries for Java 11.1
+              Multi-Purpose Libraries 11.1 for Java
+              Tool for Apache Ant 11.1
+              Tool for Java Service Wrapper 11.1
+              XML Binding Libraries 11.1 for JAXB
+      License
+          Agreement 11.1
+          Library for Java
+          Verifier
+      Platform Manager 11.1
+      Platform Manager Plug-ins
+          Universal Messaging Plug-in 11.1
+      Shared Platform
+          Platform 11.1
+          Bundles
+              Shared Bundles 11.1
+              Broker Bundles 11.1
+              Central Security Bundles (ZSL)
+                  ZSL esapi Bundle 11.1
+              Common Landscape Asset Registry 11.1
+              Common Monitoring Provider Bundle
+                  API 11.1
+                  Implementations 11.1
+              Deployer and Asset Build Environment Bundles 11.1
+              Installer Bundles 11.1
+              Integration Server Bundles 11.1
+              License Validator Bundles
+              Universal Messaging Bundles 11.1
+  Universal Messaging
+      Client Libraries 11.1
+      Instance Manager 11.1
+      Enterprise Manager 11.1
+      

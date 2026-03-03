@@ -1,4 +1,4 @@
-ARG __from_img=alpine:latest
+ARG __from_img=registry.access.redhat.com/ubi8/ubi-minimal:latest
 # ARG __from_img used below on the final stage
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS installer
 
@@ -13,15 +13,15 @@ ARG __p_zip=/tmp/products.zip
 ARG __f_zip=/tmp/fixes.zip
 ARG __i_sh=/tmp/install.sh
 ARG __wmui_preserve_audit=true
-ARG __wm_install_template=dbc/1101/full
+ARG __wm_install_template=em/1101/full
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
-
 
 RUN microdnf -y update &&\
     microdnf -y install \
         gettext \
         git \
         gzip \
+        java-11-openjdk-devel \
         less \
         nc \
         procps \
@@ -29,7 +29,7 @@ RUN microdnf -y update &&\
         tar \
         which \
         && \
-    microdnf clean all && \
+    microdnf clean all &&\
     rm -rf /var/cache/yum
 
 COPY ./installer.bin ${__i_bin}
@@ -64,9 +64,10 @@ FROM alpine:latest AS jre-packager-and-picker
 
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
 
-RUN apk --no-cache add openjdk17-jdk openjdk17-jmods binutils
+COPY --from=installer ${__wm_install_home} ${__wm_install_home}
 
-# build minimal JRE
+#build minimal JRE
+RUN apk --no-cache add openjdk17-jdk openjdk17-jmods binutils
 RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
     --verbose \
     --add-modules \
@@ -74,12 +75,6 @@ RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
     --compress 2 --strip-debug --no-header-files --no-man-pages \
     --release-info="add:IMPLEMENTOR=IBM:IMPLEMENTOR_VERSION=IBM_JRE_DBC_17" \
     --output "${__wm_install_home}/jvm/jvm/jre"
-
-COPY --from=installer ${__wm_install_home}/common/lib/ ${__wm_install_home}/common/lib/
-COPY --from=installer ${__wm_install_home}/common/db/ ${__wm_install_home}/common/db/
-
-# In case WMUI_LI_PRESERVE_AUDIT='true', at least a file is copied over, otherwise this doesn't do anything
-COPY --from=installer ${__wm_install_home}/build-time-audit*.tgz ${__wm_install_home}/
 
 FROM ${__from_img}
 
@@ -95,14 +90,21 @@ ENV \
     PATH="$PATH:${__wm_install_home}/jvm/jvm/jre/bin" \
     SAG_HOME="${__wm_install_home}"
 
-RUN addgroup -g ${__wm_grp_id} "${__wm_grp_name}" && \
-    adduser --shell /sbin/nologin --disabled-password \
-    --no-create-home --uid ${__wm_user_id} --ingroup "${__wm_grp_name}"  "${__wm_user_name}"
+RUN microdnf -y update &&\
+    microdnf -y install \
+        fontconfig \
+        libXext \
+        libXi \
+        libXrender \
+        libXtst \
+        procps-ng \
+        shadow-utils \
+    && \
+    microdnf clean all && \
+    groupadd -g ${__wm_grp_id} "${__wm_grp_name}" && \
+    useradd --shell /sbin/nologin \
+    --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
 
 COPY --chown=${__wm_user_id}:${__wm_grp_id} --from=jre-packager-and-picker ${__wm_install_home} ${__wm_install_home}
 
 USER ${__wm_user_id}
-
-RUN mkdir -p ${__wm_install_home}/common/db/logs
-
-VOLUME ${__wm_install_home}/common/db/logs

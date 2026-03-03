@@ -36,7 +36,7 @@ fi
             "${WMUI_TEST_UMGR_BOOTSTRAP_BIN}" \
             "${WMUI_TEST_FIXES_IMAGE_FILE}" \
             "${WMUI_TEST_UMGR_HOME_DIR}" ; then
-      pu_log_e "Cannot bootstrap update manager, cannot continue (code $?)!"
+      pu_log_e "Error bootstrapping update manager, cannot continue (code $?)!"
       exit 2
     fi
 ## 03 Install dbc if not already present

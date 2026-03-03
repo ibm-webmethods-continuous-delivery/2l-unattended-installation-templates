@@ -1,0 +1,10 @@
+SET INSTALLER_BIN=..\..\..\..\local\artifacts\default-installer.bin
+SET SUM_BOOTSTRAP_BIN=..\..\..\..\local\artifacts\default-upd-mgr-bootstrap.bin
+SET PRODUCTS_ZIP=..\..\..\..\local\artifacts\products\...
+SET FIXES_ZIP=..\..\..\..\local\artifacts\fixes\...
+SET PLUGINS_PATH=..\..\..\..\local\artifacts\plugins\...
+SET CONTAINER_BUILDER_TEMPLATE=designer\1101\esb-01
+SET INSTALL_TEMPLATE=designer/1101/esb-01
+SET WMUI_TAG=v0.0.5
+SET PU_TAG=v0.1.5
+SET CONTAINER_IMAGE=designer-1101-esb-01-test-1

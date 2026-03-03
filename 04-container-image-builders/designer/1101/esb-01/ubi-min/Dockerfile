@@ -1,5 +1,7 @@
-ARG __from_img=alpine:latest
+ARG __from_img=registry.access.redhat.com/ubi9/ubi-minimal:latest
 # ARG __from_img used below on the final stage
+
+# 1 stage: install product
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS installer
 
 # Bumpable tags or versions
@@ -13,9 +15,8 @@ ARG __p_zip=/tmp/products.zip
 ARG __f_zip=/tmp/fixes.zip
 ARG __i_sh=/tmp/install.sh
 ARG __wmui_preserve_audit=true
-ARG __wm_install_template=dbc/1101/full
+ARG __wm_install_template=designer/1101/esb-01
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
-
 
 RUN microdnf -y update &&\
     microdnf -y install \
@@ -28,6 +29,7 @@ RUN microdnf -y update &&\
         shadow-utils \
         tar \
         which \
+        java-11-openjdk-devel \
         && \
     microdnf clean all && \
     rm -rf /var/cache/yum
@@ -60,13 +62,15 @@ ENV \
 
 RUN chmod u+x "${__i_sh}" && "${__i_sh}"
 
+# 2 stage: optimize JRE
 FROM alpine:latest AS jre-packager-and-picker
 
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
 
-RUN apk --no-cache add openjdk17-jdk openjdk17-jmods binutils
+COPY --from=installer ${__wm_install_home} ${__wm_install_home}
 
-# build minimal JRE
+#build minimal JRE
+RUN apk --no-cache add openjdk17-jdk openjdk17-jmods binutils
 RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
     --verbose \
     --add-modules \
@@ -75,16 +79,10 @@ RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
     --release-info="add:IMPLEMENTOR=IBM:IMPLEMENTOR_VERSION=IBM_JRE_DBC_17" \
     --output "${__wm_install_home}/jvm/jvm/jre"
 
-COPY --from=installer ${__wm_install_home}/common/lib/ ${__wm_install_home}/common/lib/
-COPY --from=installer ${__wm_install_home}/common/db/ ${__wm_install_home}/common/db/
-
-# In case WMUI_LI_PRESERVE_AUDIT='true', at least a file is copied over, otherwise this doesn't do anything
-COPY --from=installer ${__wm_install_home}/build-time-audit*.tgz ${__wm_install_home}/
-
+# 3 stage: wrap up all together in the final container image
 FROM ${__from_img}
 
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
-
 ARG __wm_user_id=1001
 ARG __wm_grp_id=1001
 ARG __wm_grp_name=webmethods
@@ -95,14 +93,34 @@ ENV \
     PATH="$PATH:${__wm_install_home}/jvm/jvm/jre/bin" \
     SAG_HOME="${__wm_install_home}"
 
-RUN addgroup -g ${__wm_grp_id} "${__wm_grp_name}" && \
-    adduser --shell /sbin/nologin --disabled-password \
-    --no-create-home --uid ${__wm_user_id} --ingroup "${__wm_grp_name}"  "${__wm_user_name}"
+RUN microdnf -y update &&\
+    microdnf -y install \
+    # adwaita-icon-theme \
+    # fontconfig \
+    # gdk-pixbuf2 \
+    # git-lfs \
+    gtk3 \
+    # libglvnd-glx \
+    # librsvg2 \
+    # libXext \
+    # libXi \
+    # libXrender \
+    # libXtst \
+    # mesa-libGL \
+    procps-ng \
+    shadow-utils && \
+    microdnf clean all && \
+    groupadd -g ${__wm_grp_id} "${__wm_grp_name}" && \
+    useradd --shell /sbin/nologin \
+    --uid ${__wm_user_id} --gid "${__wm_grp_name}"  "${__wm_user_name}"
+
+#The xdg-utils package doesn't exist in UBI9 minimal.
+RUN echo '#!/bin/bash' > /usr/local/bin/xdg-mime && \
+    echo 'exit 0' >> /usr/local/bin/xdg-mime && \
+    chmod +x /usr/local/bin/xdg-mime
 
 COPY --chown=${__wm_user_id}:${__wm_grp_id} --from=jre-packager-and-picker ${__wm_install_home} ${__wm_install_home}
 
+#COPY --chown=${__wm_user_id}:${__wm_grp_id} ./plugins/* ${__wm_install_home}/Designer/eclipse/plugins/
+
 USER ${__wm_user_id}
-
-RUN mkdir -p ${__wm_install_home}/common/db/logs
-
-VOLUME ${__wm_install_home}/common/db/logs

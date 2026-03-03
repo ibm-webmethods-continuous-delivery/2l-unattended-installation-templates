@@ -1,0 +1,9 @@
+# Authored
+changeAdminPasswordAtFirstLogin=false
+selectedFixes=
+ServerURL=https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi
+# Parameters
+adminPassword=${WMUI_WMSCRIPT_adminPassword}
+HostName=${WMUI_WMSCRIPT_HostName}
+imageFile=${WMUI_WMSCRIPT_imageFile}
+InstallDir=${WMUI_WMSCRIPT_InstallDir}

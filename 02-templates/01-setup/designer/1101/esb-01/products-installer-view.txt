@@ -1,0 +1,80 @@
+  Designer
+      Eclipse 4.25
+      Shared Plug-ins
+          BigMemory Max Integration 4.4 SP1
+          Branding and Naming 11.1
+          Branding and Naming Common Plugins 11.1
+          Branding and Naming for DataDirect Drivers 11.1
+          Broker Integration 11.1
+          Database Drivers 11.1
+          Glue Integration 8.0
+          Installer Integration 11.1
+          JCR Integration 11.1
+          Landscape Asset Repository 11.1
+          License Validator
+          Metadata 11.1
+          Modeling  11.1
+          Optimize Integration 11.1
+          Universal Messaging Integration 11.1
+      Business Processes
+          Process Development 11.1
+          ARIS Integration 11.1
+          Process Task Development 11.1
+          Rules Integration 11.1
+      Business Rules Development 11.1
+      CloudStreams Development 11.1
+      Composite Applications
+          Task Development 11.1
+          UI Development 11.1
+      Services
+          Service Development 11.1
+  Infrastructure
+      Designer Plug-ins
+          Composite Applications
+              My webMethods Server Support 11.1
+      Java
+          Java Package Core 17.0
+      Libraries
+          Shared Libraries 11.1
+          Broker Libraries 11.1
+          Installer Libraries 11.1
+          Migration Framework Libraries 11.1
+          My webMethods Server Libraries 11.1
+          Third-Party Libraries
+              Application Server Libraries 11.1 for Glassfish
+              Base Security Libraries 11.1
+              Data Modeling Libraries 11.1
+              DBMS Libraries 11.1
+              Framework Libraries 11.1 for Spring
+              Logging Libraries for Java 11.1
+              Multi-Purpose Libraries 11.1 for Java
+              Swagger Libraries 11.1
+              Third-Party Libraries 11.1 for Apache
+              Tool for Apache Ant 11.1
+              Tool for Java Service Wrapper 11.1
+              Web Service Libraries 11.1
+              Web Servlet Libraries 11.1
+              XML Binding Libraries 11.1 for JAXB
+              XML Parser Libraries 11.1
+      License
+          Agreement 11.1
+          Library for Java
+      Shared Platform
+          Platform 11.1
+          Bundles
+              Shared Bundles 11.1
+              Broker Bundles 11.1
+              Central Security Bundles (ZSL)
+                  ZSL esapi Bundle 11.1
+              Composite Applications Runtime Bundles 11.1
+              Database Driver Bundles 11.1
+              Deployer and Asset Build Environment Bundles 11.1
+              Glue Bundles 8.0
+              Installer Bundles 11.1
+              Integration Server Bundles 11.1
+              Universal Messaging Bundles 11.1
+              Web Services Stack Bundles 11.1
+      Web Services Stack
+          Core Files 11.1
+  My webMethods Server
+      Diagnostic Tools 11.1
