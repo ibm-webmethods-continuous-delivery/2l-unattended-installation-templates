@@ -413,8 +413,8 @@ wmui_generate_products_zip_from_list(){
       ;;
     esac
 
-    pu_log_i "WMUI|21| Creating permanent product image creation script from template file ${__wmui_cache_home}/02-templates/01-setup/${1}/template.wmscript "
-    mkdir -p "${l_output_folder}/${1}"
+    pu_log_i "WMUI|21| Creating permanent product image creation script from given product list"
+    mkdir -p "${l_output_folder}"
     {
       echo "###Generated"
       echo "LicenseAgree=Accept"
@@ -942,7 +942,7 @@ wmui_generate_all_zips_for_templates_list() {
 
     pu_log_d "WMUI|28| param 11=${11}"
 
-    if [ ! "${11}" = "true " ]; then
+    if [ ! "${11}" = "true" ]; then
       # Phase 2: Generate per-template zips
       pu_log_i "WMUI|28| Phase 2: Generating per-template zips"
 

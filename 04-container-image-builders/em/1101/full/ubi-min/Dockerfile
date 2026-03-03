@@ -48,13 +48,13 @@ COPY ./local-install.sh ${__i_sh}
 # 5. WMUI_LI_FIXES_IMAGE_FILE is OPTIONAL. If it exists, it must point to a valid installer image containing the fixes mentioned by the template
 
 ENV \
-    WMUI_CIB_PU_TAG="${__pu_tag}" \
-    WMUI_CIB_WMUI_TAG="${__wmui_tag}" \
     WMUI_LI_FIXES_IMAGE_FILE="/tmp/fixes.zip" \
     WMUI_LI_INSTALLER_BIN="${__i_bin}" \
     WMUI_LI_PRESERVE_AUDIT="${__wmui_preserve_audit}" \
+    WMUI_LI_PU_TAG="${__pu_tag}" \
     WMUI_LI_TEMPLATE="${__wm_install_template}" \
     WMUI_LI_UMGR_BOOTSTRAP_BIN="${__u_bin}" \
+    WMUI_Li_WMUI_TAG="${__wmui_tag}" \
     WMUI_WMSCRIPT_imageFile="${__p_zip}" \
     WMUI_WMSCRIPT_InstallDir="${__wm_install_home}"
 
@@ -62,6 +62,7 @@ RUN chmod u+x "${__i_sh}" && "${__i_sh}"
 
 FROM alpine:latest AS jre-packager-and-picker
 
+ARG __wm_install_template=em/1101/full
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
 
 COPY --from=installer ${__wm_install_home} ${__wm_install_home}
@@ -78,6 +79,7 @@ RUN /usr/lib/jvm/java-17-openjdk/bin/jlink \
 
 FROM ${__from_img}
 
+ARG __wm_install_template=em/1101/full
 ARG __wm_install_home=/opt/webmethods/${__wm_install_template}
 
 ARG __wm_user_id=1001

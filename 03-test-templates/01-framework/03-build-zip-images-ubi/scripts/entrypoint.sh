@@ -65,17 +65,18 @@ _make_images() {
   local l_products_base_dir="${WMUI_PRODUCT_IMAGES_SHARED_DIRECTORY:-/mnt/artifacts/products}"
   local l_fixes_base_dir="${WMUI_FIX_IMAGES_SHARED_DIRECTORY:-/mnt/artifacts/fixes}"
 
-  # Parameters for wmui_generate_all_zips_for_templates_list:
+  # Parameters:
   # $1 -> templates list (space-separated)
-  # $2 -> OPTIONAL - installer binary location
-  # $3 -> OPTIONAL - global output directory (for merged zips)
-  # $4 -> OPTIONAL - per-template products output directory
-  # $5 -> OPTIONAL - per-template fixes output directory
-  # $6 -> OPTIONAL - platform string
-  # $7 -> OPTIONAL - fixes date tag
-  # $8 -> OPTIONAL - update manager home
-  # $9 -> OPTIONAL - update manager bootstrap binary
-  # $10 -> OPTIONAL - useLatest flag
+  # $2 -> OPTIONAL - installer binary location, default ${__wmui_default_installer_bin}
+  # $3 -> OPTIONAL - global output directory (for merged zips), default ${__wmui_default_output_folder}
+  # $4 -> OPTIONAL - per-template products output directory, default ${__wmui_default_output_folder}/products
+  # $5 -> OPTIONAL - per-template fixes output directory, default ${__wmui_default_output_folder}/fixes
+  # $6 -> OPTIONAL - platform string, default ${__wmui_default_platform_string}
+  # $7 -> OPTIONAL - fixes date tag, default current date
+  # $8 -> OPTIONAL - update manager home, default ${__wmui_default_umgr_home}
+  # $9 -> OPTIONAL - update manager bootstrap binary, default ${__wmui_default_umgr_bin}
+  # $10 -> OPTIONAL - useLatest flag, default ${__wmui_default_use_latest}
+  # $11 -> OPTIONAL - unified images only, default false
 
   wmui_generate_all_zips_for_templates_list \
     "${WMUI_TEST_Templates}" \
