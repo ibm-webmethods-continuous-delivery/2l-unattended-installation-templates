@@ -4,6 +4,6 @@ SET PRODUCTS_ZIP=c:\path\to\artifacts\products\...
 SET FIXES_ZIP=c:\path\to\artifacts\fixes\...
 SET CONTAINER_BUILDER_TEMPLATE=dbc\1101\full
 SET INSTALL_TEMPLATE=dbc/1101/full
-SET WMUI_TAG=v0.0.8
+SET WMUI_TAG=v0.0.9
 SET PU_TAG=v0.1.5
 SET CONTAINER_IMAGE=dbc-1101-full-alpine-test-1

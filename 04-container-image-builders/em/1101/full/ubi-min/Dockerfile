@@ -4,7 +4,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS installer
 
 # Bumpable tags or versions
 ARG __pu_tag=v0.1.5
-ARG __wmui_tag=v0.0.5
+ARG __wmui_tag=v0.0.9
 
 # Temporary until buildah fix will be available: one argument for ARG
 ARG __i_bin=/tmp/installer.bin
@@ -54,7 +54,7 @@ ENV \
     WMUI_LI_PU_TAG="${__pu_tag}" \
     WMUI_LI_TEMPLATE="${__wm_install_template}" \
     WMUI_LI_UMGR_BOOTSTRAP_BIN="${__u_bin}" \
-    WMUI_Li_WMUI_TAG="${__wmui_tag}" \
+    WMUI_LI_WMUI_TAG="${__wmui_tag}" \
     WMUI_WMSCRIPT_imageFile="${__p_zip}" \
     WMUI_WMSCRIPT_InstallDir="${__wm_install_home}"
 

@@ -28,7 +28,7 @@ set -e
   export WMUI_LI_PU_TAG="${WMUI_LI_PU_TAG:-v0.1.5}"
 
   export WMUI_HOME="${WMUI_HOME:-/tmp/WMUI_HOME}"
-  export WMUI_LI_WMUI_TAG="${WMUI_LI_WMUI_TAG:-v0.0.5}"
+  export WMUI_LI_WMUI_TAG="${WMUI_LI_WMUI_TAG:-v0.0.9}"
 
   export WMUI_WMSCRIPT_InstallDir="${WMUI_WMSCRIPT_InstallDir:-/opt/webmethods}"
 
@@ -36,7 +36,7 @@ set -e
 
 ## 02. Prerequisites for setup
 
-  echo "Cloning WMUI for tag ${WMUI_LI_WMUI_TAG}..."
+  echo "WMUI|LI| Cloning WMUI for tag ${WMUI_LI_WMUI_TAG}..."
 
   git config --global advice.detachedHead false
 
@@ -50,7 +50,7 @@ set -e
   # shellcheck source=../../2l-posix-shell-utils/code/7.data.sh
   . "${PU_HOME}/code/7.data.sh"
 
-  pu_log_i "[WMUI_LI] Cloning WMUI for tag ${WMUI_LI_WMUI_TAG}..."
+  pu_log_i "WMUI|LI| Cloning WMUI for tag ${WMUI_LI_WMUI_TAG}..."
 
   git clone -b "${WMUI_LI_WMUI_TAG}" --single-branch --depth 1 \
     https://github.com/ibm-webmethods-continuous-delivery/2l-unattended-installation-templates.git \
@@ -61,10 +61,10 @@ set -e
 
 ## 03. Bootstrap Update Manager
   if [ -z "${WMUI_LI_UMGR_BOOTSTRAP_BIN+x}" ]; then
-    pu_log_w "[WMUI_LI] Update Manager Bootstrap file not provided, skipping..."
+    pu_log_w "WMUI|LI| Update Manager Bootstrap file not provided, skipping..."
   else
     if [ -f "${WMUI_LI_UMGR_BOOTSTRAP_BIN}" ]; then
-      pu_log_i "[WMUI_LI] Bootstrapping Update Manager..."
+      pu_log_i "WMUI|LI| Bootstrapping Update Manager..."
       # Parameters - wmui_bootstrap_umgr
       # $1 - Update Manager Bootstrap file
       # $2 - Fixes image file, mandatory for offline mode
@@ -77,18 +77,18 @@ set -e
         exit 2
       fi
     else
-      pu_log_e "[WMUI_LI] Update Manager Bootstrap file not found, skipping Update Manager bootstrap"
+      pu_log_e "WMUI|LI| Update Manager Bootstrap file not found, skipping Update Manager bootstrap"
       exit 1
     fi
   fi
 
 ## 04. Installation and patching
-  pu_log_i "[WMUI_LI] WMUI env before installation:"
+  pu_log_i "WMUI|LI| WMUI env before installation:"
   env | grep WMUI_ | sort
-  pu_log_i "[WMUI_LI] Installing Product according to template ${WMUI_TEMPLATE}..."
+  pu_log_i "WMUI|LI| Installing Product according to template ${WMUI_TEMPLATE}..."
 
   if [ -d "${WMUI_LI_UMGR_HOME_DIR}" ]; then
-    pu_log_w "[WMUI_LI] Setting up products and fixes from template ${WMUI_LI_TEMPLATE}"
+    pu_log_w "WMUI|LI| Setting up products and fixes from template ${WMUI_LI_TEMPLATE}"
     # Parameters
     # $1 - Template id
     # $2 - OPTIONAL: use latest versions (default passthrough to wmui_install_template_products)
@@ -107,7 +107,7 @@ set -e
       exit 3
     fi
   else
-    pu_log_w "[WMUI_LI] Setting up products only from template ${WMUI_LI_TEMPLATE}"
+    pu_log_w "WMUI|LI| Setting up products only from template ${WMUI_LI_TEMPLATE}"
     if ! wmui_setup_products_and_fixes_from_template \
             "${WMUI_LI_TEMPLATE}" \
             "" \
@@ -116,7 +116,7 @@ set -e
       exit 4
     fi
   fi
-  pu_log_i "Product installation successful"
+  pu_log_i "WMUI|LI| Product installation successful"
 
 ## 05. Save audit for debugging
   if [ "${WMUI_LI_PRESERVE_AUDIT}" = 'true' ]; then
