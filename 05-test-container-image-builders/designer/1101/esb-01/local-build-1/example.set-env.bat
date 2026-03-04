@@ -5,6 +5,6 @@ SET FIXES_ZIP=..\..\..\..\local\artifacts\fixes\...
 SET PLUGINS_PATH=..\..\..\..\local\artifacts\plugins\...
 SET CONTAINER_BUILDER_TEMPLATE=designer\1101\esb-01
 SET INSTALL_TEMPLATE=designer/1101/esb-01
-SET WMUI_TAG=v0.0.7
+SET WMUI_TAG=v0.0.8
 SET PU_TAG=v0.1.5
 SET CONTAINER_IMAGE=designer-1101-esb-01-test-1
