@@ -5,7 +5,7 @@ volumes:
   user-home: {}
 services:
   msr:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-402-msr
     hostname: ${WMUI_WMSCRIPT_HostName}
     volumes:

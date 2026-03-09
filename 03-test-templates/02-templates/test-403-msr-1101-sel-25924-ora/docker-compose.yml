@@ -37,7 +37,7 @@ services:
       start_period: 60s
 
   msr:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-403-msr
     hostname: ${WMUI_WMSCRIPT_HostName}
     volumes:

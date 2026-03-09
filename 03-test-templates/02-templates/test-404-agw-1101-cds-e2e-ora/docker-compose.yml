@@ -110,7 +110,7 @@ services:
     cpus: 1
 
   agw:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-404-agw
     hostname: ${WMUI_WMSCRIPT_HostName}
     volumes:

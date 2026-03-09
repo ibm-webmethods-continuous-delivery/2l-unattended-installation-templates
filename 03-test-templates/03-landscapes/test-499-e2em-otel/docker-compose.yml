@@ -136,7 +136,7 @@ services:
     cpus: 1
 
   agw:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-499-agw
     hostname: ${WMUI_WMSCRIPT_AGW_HostName}
     volumes:
@@ -211,7 +211,7 @@ services:
     entrypoint: /mnt/scripts/agw/containerEntrypoint.sh
 
   esb:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-499-msr
     hostname: ${WMUI_WMSCRIPT_MSR_HostName}
     volumes:

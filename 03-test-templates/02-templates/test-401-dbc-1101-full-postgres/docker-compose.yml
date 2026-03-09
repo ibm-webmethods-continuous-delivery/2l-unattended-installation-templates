@@ -42,7 +42,7 @@ services:
       db:
         condition: service_healthy
   dbc:
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-401-dbc
     hostname: ${WMUI_WMSCRIPT_HostName}
     volumes:
