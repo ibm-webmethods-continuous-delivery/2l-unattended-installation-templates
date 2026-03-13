@@ -123,7 +123,7 @@ wmui_assure_default_installer() {
     return 1
   fi
   pu_log_d "WMUI|03| Default installer correctly assured in ${l_installer_bin}"
-  chmod u+x "${l_installer_bin}" 2>/dev/null
+  chmod u+x "${l_installer_bin}" 2> /dev/null
   return 0
 }
 
@@ -139,7 +139,7 @@ wmui_assure_default_umgr_bin() {
     return 1
   fi
   pu_log_d "WMUI|04| Default update manager correctly assured in ${l_umgr_bin}"
-  chmod u+x "${l_umgr_bin}" 2>/dev/null
+  chmod u+x "${l_umgr_bin}" 2> /dev/null
   return 0
 }
 
@@ -180,7 +180,7 @@ wmui_merge_product_lists() {
   # $2+ - input file paths (one or more product list files to merge)
 
   local l_output_file="${1}"
-  shift  # Remove first argument, remaining are input files
+  shift # Remove first argument, remaining are input files
 
   # Check required parameters
   if [ -z "$l_output_file" ]; then
@@ -276,10 +276,14 @@ wmui_generate_inventory_from_products_list() {
     # Parse format: e2ei/27/PRODUCT_VERSION.LATEST/Category/ProductCode
     # Use parameter expansion to split the path
     local l_remaining="$l_product_line"
-    local l_part1="${l_remaining%%/*}"; l_remaining="${l_remaining#*/}"
-    local l_part2="${l_remaining%%/*}"; l_remaining="${l_remaining#*/}"
-    local l_version_part="${l_remaining%%/*}"; l_remaining="${l_remaining#*/}"
-    local l_part4="${l_remaining%%/*}"; l_remaining="${l_remaining#*/}"
+    local l_part1="${l_remaining%%/*}"
+    l_remaining="${l_remaining#*/}"
+    local l_part2="${l_remaining%%/*}"
+    l_remaining="${l_remaining#*/}"
+    local l_version_part="${l_remaining%%/*}"
+    l_remaining="${l_remaining#*/}"
+    local l_part4="${l_remaining%%/*}"
+    l_remaining="${l_remaining#*/}"
     local l_product_code="$l_remaining"
 
     if [ -n "$l_product_code" ] && [ -n "$l_version_part" ]; then
@@ -358,7 +362,7 @@ wmui_generate_inventory_from_products_list() {
 
 # Function 21 - Generate products.zip image file from a list of products
 # TODO: a subset of function 22. To refactor.
-wmui_generate_products_zip_from_list(){
+wmui_generate_products_zip_from_list() {
   # Parameters
   # $1 -> product csv list
   # $2 -> OPTIONAL - installer binary location, default ${__wmui_default_installer_bin}
@@ -399,18 +403,18 @@ wmui_generate_products_zip_from_list(){
     #Address download server URL
     local l_sdc_server_url
     case "${1}" in
-    *"/1011/"*)
-      l_sdc_server_url=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1011.cgi"}
-      ;;
-    *"/1015/"*)
-      l_sdc_server_url=${WMUI_SDC_SERVER_URL_1015:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1015.cgi"}
-      ;;
-    *"/1101/"*)
-      l_sdc_server_url=${WMUI_SDC_SERVER_URL_1101:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
-      ;;
-    *)
-      l_sdc_server_url=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
-      ;;
+      *"/1011/"*)
+        l_sdc_server_url=${WMUI_SDC_SERVER_URL_1011:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1011.cgi"}
+        ;;
+      *"/1015/"*)
+        l_sdc_server_url=${WMUI_SDC_SERVER_URL_1015:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM1015.cgi"}
+        ;;
+      *"/1101/"*)
+        l_sdc_server_url=${WMUI_SDC_SERVER_URL_1101:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
+        ;;
+      *)
+        l_sdc_server_url=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
+        ;;
     esac
 
     pu_log_i "WMUI|21| Creating permanent product image creation script from given product list"
@@ -423,7 +427,7 @@ wmui_generate_products_zip_from_list(){
       echo "imageFile=${l_products_zip}"
       echo "ServerURL=${l_sdc_server_url}"
       echo "InstallProducts=${l_products_csv}"
-    } >"${l_img_creation_script}"
+    } > "${l_img_creation_script}"
 
     pu_log_i "WMUI|21| Permanent product image creation script file created"
   fi
@@ -435,8 +439,8 @@ wmui_generate_products_zip_from_list(){
   mkdir -p "${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}/"
   cp "${l_img_creation_script}" "${l_ephemeral_script}"
   # TODO: assure credential variables
-  echo "Username=${WMUI_DOWNLOAD_USER}" >>"${l_ephemeral_script}"
-  echo "Password=${WMUI_DOWNLOAD_PASSWORD}" >>"${l_ephemeral_script}"
+  echo "Username=${WMUI_DOWNLOAD_USER}" >> "${l_ephemeral_script}"
+  echo "Password=${WMUI_DOWNLOAD_PASSWORD}" >> "${l_ephemeral_script}"
   pu_log_i "WMUI|21| Volatile script created."
 
   ## TODO: check if error management enforcement is needed: what if the grep produced nothing?
@@ -445,7 +449,7 @@ wmui_generate_products_zip_from_list(){
   ## TODO: not space safe, but it shouldn't matter for now
   local l_temp_installer_bin="/tmp/installer-${l_epoch}.bin"
   cp "${l_installer_bin}" "${l_temp_installer_bin}"
-  chmod u+x "${l_temp_installer_bin}" 2>/dev/null
+  chmod u+x "${l_temp_installer_bin}" 2> /dev/null
   local l_cmd="${l_temp_installer_bin} -console -readScript ${l_ephemeral_script}"
   # shellcheck disable=SC2154
   if [ "${__1__debug_mode}" = "true" ]; then
@@ -465,7 +469,7 @@ wmui_generate_products_zip_from_list(){
   pu_log_d "WMUI|21| Command is ${l_cmd}"
   pu_audited_exec "${l_cmd}" "Create-all-products-image"
   local l_create_result=$?
-  if [ $l_create_result -ne 0 ] ; then
+  if [ $l_create_result -ne 0 ]; then
     pu_log_e "WMUI|21| Image ${l_products_zip} creation failed with result: ${l_create_result}"
     pu_log_e "WMUI|21| Saving the ephemeral script into the output folder..."
     mv "${l_ephemeral_script}" "${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}"/
@@ -501,9 +505,9 @@ wmui_generate_products_zip_from_template() {
   l_products_csv=$(pu_lines_to_csv "${l_template_products_list_file}")
 
   local l_output_folder_specialization='versioned'
-    if [ "${5}" = "true" ]; then
-      l_output_folder_specialization='latest'
-    fi
+  if [ "${5}" = "true" ]; then
+    l_output_folder_specialization='latest'
+  fi
 
   local l_output_folder="${3:-/tmp/images/products}/${1}/${l_output_folder_specialization}"
   pu_log_d "WMUI|23| Products image for setup template ${1} will be generated in ${l_output_folder}..."
@@ -554,15 +558,15 @@ wmui_generate_products_zip_from_templates_list() {
   done
 
   local l_output_folder_specialization='versioned'
-    if [ "${l_use_latest}" = "true" ]; then
-      l_output_folder_specialization='latest'
-    fi
+  if [ "${l_use_latest}" = "true" ]; then
+    l_output_folder_specialization='latest'
+  fi
 
   mkdir -p "${l_output_folder}/${l_output_folder_specialization}"
 
   # Merge all product lists using Function 07
   # shellcheck disable=SC2086
-  if ! wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files} ; then
+  if ! wmui_merge_product_lists "${l_temp_merged_list}" ${l_product_list_files}; then
     pu_log_e "WMUI|23| Failed to merge product lists"
     rm -f "${l_temp_merged_list}"
     return 3
@@ -688,7 +692,7 @@ wmui_generate_fixes_zip_from_list_on_file() {
       echo "installDir=${l_permanent_inventory_file}"
       echo "imagePlatform=${l_platform_string}"
       echo "createEmpowerImage=C"
-    } >"${l_permanent_script_file}"
+    } > "${l_permanent_script_file}"
   fi
 
   local l_cmd="./UpdateManagerCMD.sh -selfUpdate false -readScript "'"'"${l_permanent_script_file}"'"'
@@ -753,17 +757,17 @@ wmui_generate_fixes_zip_from_template() {
   pu_log_d "WMUI|27| l_use_latest=${l_use_latest};l_template_products_list_file=${l_template_products_list_file}"
 
   local l_output_folder_specialization='versioned'
-    if [ "${7}" = "true" ]; then
-      l_output_folder_specialization='latest'
-    fi
+  if [ "${7}" = "true" ]; then
+    l_output_folder_specialization='latest'
+  fi
 
   l_output_dir="${2:-${__wmui_default_output_folder_fixes}}/${l_output_folder_specialization}"
   mkdir -p "${l_output_dir}"
 
   if ! wmui_generate_fixes_zip_from_list_on_file \
-        "${l_template_products_list_file}" \
-        "${l_output_dir}" \
-        "${3}" "${4}" "${5}" "${6}" ; then
+    "${l_template_products_list_file}" \
+    "${l_output_dir}" \
+    "${3}" "${4}" "${5}" "${6}"; then
     pu_log_e "WMUI|27| ERROR: Failed to generate fixes image for setup template ${1}."
     return 1
   fi
@@ -796,10 +800,10 @@ wmui_generate_all_zips_for_templates_list() {
   local l_umgr_bootstrap_bin="${9:-${__wmui_default_umgr_bin}}"
   local l_use_latest="${10:-${__wmui_default_use_latest}}"
   local l_output_folder_specialization='versioned'
-    if [ "${l_use_latest}" = "true" ] ; then
-      pu_log_i "WMUI|28| Using latest products"
-      l_output_folder_specialization='latest'
-    fi
+  if [ "${l_use_latest}" = "true" ]; then
+    pu_log_i "WMUI|28| Using latest products"
+    l_output_folder_specialization='latest'
+  fi
 
   local l_global_output_dir="${3:-${__wmui_default_output_folder}}/${l_output_folder_specialization}"
 
@@ -830,7 +834,7 @@ wmui_generate_all_zips_for_templates_list() {
         "${l_installer_bin}" \
         "${l_per_template_products_dir}" \
         "${l_platform_string}" \
-        "${l_use_latest}" ; then
+        "${l_use_latest}"; then
         pu_log_e "WMUI|28| Failed to generate products zip for template ${l_template}"
         return 2
       fi
@@ -845,7 +849,7 @@ wmui_generate_all_zips_for_templates_list() {
         "${l_platform_string}" \
         "${l_umgr_home}" \
         "${l_umgr_bootstrap_bin}" \
-        "${l_use_latest}" ; then
+        "${l_use_latest}"; then
         pu_log_e "WMUI|28| Failed to generate fixes zip for template ${l_template}"
         return 3
       fi
@@ -872,8 +876,8 @@ wmui_generate_all_zips_for_templates_list() {
     for l_template in $l_templates_list; do
       local l_template_list_file
       if ! l_template_list_file=$(wmui_get_product_list_of_template \
-                                  "${l_template}" \
-                                  "${l_use_latest}") ; then
+        "${l_template}" \
+        "${l_use_latest}"); then
         pu_log_e "WMUI|28| Failed to get product list for template ${l_template}"
         rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
         return 4
@@ -885,7 +889,7 @@ wmui_generate_all_zips_for_templates_list() {
     # shellcheck disable=SC2086
     if ! wmui_merge_product_lists \
       "${l_temp_merged_list}" \
-      ${l_product_list_files} ; then
+      ${l_product_list_files}; then
       pu_log_e "WMUI|28| Failed to merge product lists"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 5
@@ -896,7 +900,7 @@ wmui_generate_all_zips_for_templates_list() {
       "${l_temp_merged_list}" \
       "${l_temp_inventory}" \
       "" \
-      "${l_platform_string}" ; then
+      "${l_platform_string}"; then
       pu_log_e "WMUI|28| Failed to generate inventory from merged products list"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 6
@@ -929,7 +933,7 @@ wmui_generate_all_zips_for_templates_list() {
       "${l_fixes_tag}" \
       "${l_platform_string}" \
       "${l_umgr_home}" \
-      "${l_umgr_bootstrap_bin}" ; then
+      "${l_umgr_bootstrap_bin}"; then
       pu_log_e "WMUI|28| Failed to generate global fixes zip"
       rm -f "${l_temp_merged_list}" "${l_temp_inventory}"
       return 8
@@ -957,7 +961,7 @@ wmui_generate_all_zips_for_templates_list() {
           "${l_installer_bin}" \
           "${l_per_template_products_dir}" \
           "${l_platform_string}" \
-          "${l_use_latest}" ; then
+          "${l_use_latest}"; then
           pu_log_w "WMUI|28| Failed to generate products zip for template ${l_template}, continuing..."
         fi
 
@@ -971,7 +975,7 @@ wmui_generate_all_zips_for_templates_list() {
           "${l_platform_string}" \
           "${l_umgr_home}" \
           "${l_umgr_bootstrap_bin}" \
-          "${l_use_latest}" ; then
+          "${l_use_latest}"; then
           pu_log_w "WMUI|28| Failed to generate fixes zip for template ${l_template}, continuing..."
         fi
       done
@@ -1019,7 +1023,7 @@ wmui_bootstrap_umgr() {
   mkdir -p "${l_work_dir}" || return $?
 
   cp "${l_umgr_bin}" "${l_work_dir}/umgr-bootstrap.bin"
-  chmod u+x "${l_work_dir}/umgr-bootstrap.bin" 2>/dev/null
+  chmod u+x "${l_work_dir}/umgr-bootstrap.bin" 2> /dev/null
 
   local l_bootstrap_cmd="${l_work_dir}/umgr-bootstrap.bin --accept-license -d "'"'"${l_umgr_home}"'"'
   if [ "${__wmui_product_online_mode}" = "true" ]; then
@@ -1166,7 +1170,7 @@ wmui_patch_installation() {
       local l_d_key="${5:-${__wmui_default_diagnoser_key}}"
       echo "diagnoserKey=${l_d_key}"
     fi
-  } >"${l_fixes_script_file}"
+  } > "${l_fixes_script_file}"
 
   local l_crt_dir
   l_crt_dir=$(pwd)
@@ -1180,7 +1184,7 @@ wmui_patch_installation() {
 
   pu_log_i "WMUI|44| Applying fixes from image ${1} to installation ${l_install_dir} using UPD_MGR in ${l_upd_mgr_home}..."
 
-  if pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${l_fixes_script_file}\"" "PatchInstallation" ; then
+  if pu_audited_exec "./UpdateManagerCMD.sh -readScript \"${l_fixes_script_file}\"" "PatchInstallation"; then
     pu_log_i "WMUI|44| Patch successful"
   else
     local l_res_cexec=$?
@@ -1238,7 +1242,7 @@ wmui_remove_diagnoser_patch() {
     echo "installDir=${l_install_dir}"
     echo "selectedFixes=${2}"
     echo "action=Uninstall fixes"
-  } >"${l_tmp_script_file}"
+  } > "${l_tmp_script_file}"
 
   local l_crt_dir
   l_crt_dir=$(pwd)
@@ -1289,10 +1293,10 @@ wmui_setup_products_and_fixes_from_template() {
   # $6 - OPTIONAL: Update manager home, default ${__wmui_default_umgr_home}
 
   pu_log_i "WMUI|46| Setting up product and fixes for template ${1}"
-    if ! wmui_install_template_products "${1}" "${2}" "${3}" "${4}" ; then
-      pu_log_e "WMUI|46| Failed to install products and fixes for template ${1}"
-      return 1
-    fi
+  if ! wmui_install_template_products "${1}" "${2}" "${3}" "${4}"; then
+    pu_log_e "WMUI|46| Failed to install products and fixes for template ${1}"
+    return 1
+  fi
 
   if [ -z "${5+x}" ]; then
     pu_log_i "WMUI|46| Fixes image not received, skipping patching"
@@ -1305,7 +1309,7 @@ wmui_setup_products_and_fixes_from_template() {
 
   # WMUI_WMSCRIPT_InstallDir MUST be passed in environment otherwise installation fails above
   # shellcheck disable=SC2154
-  if ! wmui_patch_installation "${5}" "${6}" "${WMUI_WMSCRIPT_InstallDir}" ; then
+  if ! wmui_patch_installation "${5}" "${6}" "${WMUI_WMSCRIPT_InstallDir}"; then
     pu_log_e "WMUI|46| Failed to patch installation"
     return 3
   fi
@@ -1322,89 +1326,89 @@ wmui_install_template_products() {
   # $4 - OPTIONAL: debugLevel for installer, default verbose
 
   ## 1. Preliminary checks and env setup
-    local l_prerequisite_errors=0
-    if [ ! "$(which envsubst)" ]; then
-      pu_log_e "WMUI|47| Product installation from template requires envsubst to be installed!"
-      l_prerequisite_errors=$((l_prerequisite_errors + 1))
-    fi
+  local l_prerequisite_errors=0
+  if [ ! "$(which envsubst)" ]; then
+    pu_log_e "WMUI|47| Product installation from template requires envsubst to be installed!"
+    l_prerequisite_errors=$((l_prerequisite_errors + 1))
+  fi
 
-    if [ -z "${WMUI_WMSCRIPT_imageFile+x}" ]; then
-      pu_log_e "WMUI_WMSCRIPT_imageFile is unset. this framework always installs from local zip images"
-      l_prerequisite_errors=$((l_prerequisite_errors + 1))
-    fi
+  if [ -z "${WMUI_WMSCRIPT_imageFile+x}" ]; then
+    pu_log_e "WMUI_WMSCRIPT_imageFile is unset. this framework always installs from local zip images"
+    l_prerequisite_errors=$((l_prerequisite_errors + 1))
+  fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "template.wmscript" ; then
-      pu_log_e "WMUI|47| Setup for template ${1} failed, file not found. is [${1}] an existing template?"
-      l_prerequisite_errors=$((l_prerequisite_errors + 1))
-    fi
+  if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "template.wmscript"; then
+    pu_log_e "WMUI|47| Setup for template ${1} failed, file not found. is [${1}] an existing template?"
+    l_prerequisite_errors=$((l_prerequisite_errors + 1))
+  fi
 
-    if [ ${l_prerequisite_errors} -ne 0 ] ; then
-      pu_log_e "WMUI|47| Framework prerequisites check failed for template ${2}"
-      return 1
-    fi
+  if [ ${l_prerequisite_errors} -ne 0 ]; then
+    pu_log_e "WMUI|47| Framework prerequisites check failed for template ${2}"
+    return 1
+  fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "01-set-env-defaults.sh" ; then
-      pu_log_w "WMUI|47| Cannot find 01-set-env-defaults.sh for template [${1}]. Using framework's defaults..."
+  if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "01-set-env-defaults.sh"; then
+    pu_log_w "WMUI|47| Cannot find 01-set-env-defaults.sh for template [${1}]. Using framework's defaults..."
+  else
+    if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" ]; then
+      pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
+      chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" 2> /dev/null
+      # shellcheck source=/dev/null
+      . "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" || return 4
     else
-      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" ]; then
-        pu_log_i "WMUI|47| Applying defaults for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" 2>/dev/null
-        # shellcheck source=/dev/null
-        . "${__wmui_cache_home}/02-templates/01-setup/${1}/01-set-env-defaults.sh" || return 4
-      else
-        pu_log_w "WMUI|47| 01-set-env-defaults.sh for template [${1}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
-      fi
+      pu_log_w "WMUI|47| 01-set-env-defaults.sh for template [${1}] missing even if successfully hunted for.This should not happen. Using framework's defaults..."
     fi
+  fi
 
-    if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "02-check-prerequisites.sh" ; then
-      pu_log_w "WMUI|47| Cannot find 02-check-prerequisites.sh for template [${1}]. Ignoring prerequisites check..."
+  if ! wmui_hunt_for_file "02-templates/01-setup/${1}" "02-check-prerequisites.sh"; then
+    pu_log_w "WMUI|47| Cannot find 02-check-prerequisites.sh for template [${1}]. Ignoring prerequisites check..."
+  else
+    if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" ]; then
+      pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
+      chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" 2> /dev/null
+      # shellcheck source=/dev/null
+      . "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" || return 3
     else
-      if [ -f "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" ]; then
-        pu_log_i "WMUI|47| Checking installation prerequisites for template ${1} ..."
-        chmod u+x "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" 2>/dev/null
-        # shellcheck source=/dev/null
-        . "${__wmui_cache_home}/02-templates/01-setup/${1}/02-check-prerequisites.sh" || return 3
-      else
-        pu_log_w "WMUI|47| Check prerequisites script not present even after successful hunting. This should not happen. Skipping check..."
-      fi
+      pu_log_w "WMUI|47| Check prerequisites script not present even after successful hunting. This should not happen. Skipping check..."
     fi
+  fi
 
   ## 2. Get the products list file
-    local \
-      l_use_latest \
-      l_products_file \
-      l_d \
-      l_product_lines \
-      l_temp_enhanced_template
-    l_use_latest="${3:-true}"
-    l_products_file=$(wmui_get_product_list_of_template "${1}" "${2}")
-    l_d=$(date +%s)
+  local \
+    l_use_latest \
+    l_products_file \
+    l_d \
+    l_product_lines \
+    l_temp_enhanced_template
+  l_use_latest="${3:-true}"
+  l_products_file=$(wmui_get_product_list_of_template "${1}" "${2}")
+  l_d=$(date +%s)
 
-    pu_log_i "WMUI|47| Setup products for template ${1}, use latest: ${l_use_latest}"
+  pu_log_i "WMUI|47| Setup products for template ${1}, use latest: ${l_use_latest}"
 
-    # Create temporary enhanced template with InstallProducts line
-    l_temp_enhanced_template="${__2__audit_session_dir}/template_enhanced_${l_d}.wmscript"
+  # Create temporary enhanced template with InstallProducts line
+  l_temp_enhanced_template="${__2__audit_session_dir}/template_enhanced_${l_d}.wmscript"
 
-    # Copy original template
-    envsubst \
-      <"${__wmui_cache_home}/02-templates/01-setup/${1}/template.wmscript" \
-      >"${l_temp_enhanced_template}" || return 5
+  # Copy original template
+  envsubst \
+    < "${__wmui_cache_home}/02-templates/01-setup/${1}/template.wmscript" \
+    > "${l_temp_enhanced_template}" || return 5
 
-    echo "InstallProducts=$(pu_lines_to_csv "${l_products_file}")"\
-      >> "${l_temp_enhanced_template}"
+  echo "InstallProducts=$(pu_lines_to_csv "${l_products_file}")" \
+    >> "${l_temp_enhanced_template}"
 
   ## 3. Call installation function
-    if ! wmui_install_products \
-      "${3}" \
-      "${l_temp_enhanced_template}" \
-      "${2}" ; then
-      pu_log_e "WMUI|47| Error while installing products according to template ${1}"
-      pu_log_d "WMUI|47| Leaving temp file ${l_temp_enhanced_template} for diagnostics"
-      return 1
-    else
-      pu_log_i "WMUI|47| Products installed successfully according to template ${1}"
-      rm -f "${l_temp_enhanced_template}"
-    fi
+  if ! wmui_install_products \
+    "${3}" \
+    "${l_temp_enhanced_template}" \
+    "${2}"; then
+    pu_log_e "WMUI|47| Error while installing products according to template ${1}"
+    pu_log_d "WMUI|47| Leaving temp file ${l_temp_enhanced_template} for diagnostics"
+    return 1
+  else
+    pu_log_i "WMUI|47| Products installed successfully according to template ${1}"
+    rm -f "${l_temp_enhanced_template}"
+  fi
 
   return 0
 }
@@ -1416,7 +1420,7 @@ wmui_log_wmscript_env() {
   pu_log_i "WMUI|48| >>>>>>>>>>>> WMUI_WMSCRIPT_ global public constants:"
   env | grep WMUI_WMSCRIPT_ | grep -vi _PASS | sort
   # shellcheck disable=SC2154
-  env | grep WMUI_WMSCRIPT_ | grep -vi _PASS | sort >>"${__2__audit_session_file}"
+  env | grep WMUI_WMSCRIPT_ | grep -vi _PASS | sort >> "${__2__audit_session_file}"
   pu_log_i "WMUI|48| >>>>>>>>>>>>>>>> End Listing PU environment variables"
 }
 
@@ -1430,37 +1434,37 @@ wmui_apply_post_setup_template() {
   pu_log_i "WMUI|47| Applying post-setup template ${1}..."
 
   ## Part 01 - defaults
-    if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "01-set-env-defaults.sh" ; then
-      pu_log_d "WMUI|47| 01-set-env-defaults.sh found, using it to set defaults..."
-      # shellcheck disable=SC1090
-      . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/01-set-env-defaults.sh"
-    else
-      pu_log_w "WMUI|47| 01-set-env-defaults.sh not found, no defaults considered!"
-    fi
+  if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "01-set-env-defaults.sh"; then
+    pu_log_d "WMUI|47| 01-set-env-defaults.sh found, using it to set defaults..."
+    # shellcheck disable=SC1090
+    . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/01-set-env-defaults.sh"
+  else
+    pu_log_w "WMUI|47| 01-set-env-defaults.sh not found, no defaults considered!"
+  fi
 
   ## Part 02 - prerequisites
-    if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "02-check-prerequisites.sh" ; then
-      pu_log_d "WMUI|47| 02-check-prerequisites.sh found, calling..."
-      # shellcheck disable=SC1090
-      . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/02-check-prerequisites.sh"
-    else
-      pu_log_w "WMUI|47| 02-check-prerequisites.sh not found, no prerequisites considered!"
-    fi
+  if wmui_hunt_for_file "02-templates/02-post-setup/${1}" "02-check-prerequisites.sh"; then
+    pu_log_d "WMUI|47| 02-check-prerequisites.sh found, calling..."
+    # shellcheck disable=SC1090
+    . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/02-check-prerequisites.sh"
+  else
+    pu_log_w "WMUI|47| 02-check-prerequisites.sh not found, no prerequisites considered!"
+  fi
 
   ## Part 03 - apply
-    if ! wmui_hunt_for_file "02-templates/02-post-setup/${1}" "03-apply.sh" ; then
-      pu_log_e "WMUI|61| File ${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh not found!"
-      return 1
-    fi
+  if ! wmui_hunt_for_file "02-templates/02-post-setup/${1}" "03-apply.sh"; then
+    pu_log_e "WMUI|61| File ${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh not found!"
+    return 1
+  fi
 
-    pu_log_i "WMUI|61| Applying post-setup template ${1}"
-    # shellcheck disable=SC1090
-    if ! . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh" ; then
-      pu_log_e "WMUI|61| Application of post-setup template ${1} failed, code $?"
-      return 3
-    fi
-    pu_log_i "WMUI|61| Post setup template ${1} applied successfully"
-    return 0
+  pu_log_i "WMUI|61| Applying post-setup template ${1}"
+  # shellcheck disable=SC1090
+  if ! . "${__wmui_cache_home}/02-templates/02-post-setup/${1}/03-apply.sh"; then
+    pu_log_e "WMUI|61| Application of post-setup template ${1} failed, code $?"
+    return 3
+  fi
+  pu_log_i "WMUI|61| Post setup template ${1} applied successfully"
+  return 0
 }
 
 pu_log_d "WMUI|--| wmui-functions.sh initialized"
