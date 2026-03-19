@@ -75,11 +75,15 @@ fi
   fi
 
 ## 05 Startup server
-  envsubst < /tmp/agw-yml/system-settings.yml \
-  > "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/system-settings.yml"
+  envsubst \
+    < /tmp/agw-yml/system-settings.yml \
+    > "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/system-settings.yml"
 
-  cp /tmp/agw-yml/config-sources.yml \
-    "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/"
+  envsubst \
+    < /tmp/agw-yml/config-sources.yml \
+    > "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/config-sources.yml"
+
+  cp /tmp/agw-config/* "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/config"/
 
   cd "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin" || exit 4
   nohup ./server.sh &

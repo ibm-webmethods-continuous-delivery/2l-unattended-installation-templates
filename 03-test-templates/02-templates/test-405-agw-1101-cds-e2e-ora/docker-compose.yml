@@ -123,6 +123,7 @@ services:
       - ${H_WMUI_ARTIFACTS}:/mnt/artifacts
       - ./config/agw/application.properties:/tmp/application.properties
       - ./config/agw/yml:/tmp/agw-yml
+      - ./config/agw/config:/tmp/agw-config
     environment:
       # Mandatory framework variables for setting up products via templates
       - WMUI_WMSCRIPT_HostName

@@ -1,6 +1,6 @@
 ######################## Master configuration ############################
 
-# This is the master configuration file which contains the configuration 
+# This is the master configuration file which contains the configuration
 # source definitions.
 #
 # You can find the full configuration reference here:
@@ -8,13 +8,14 @@
 
 #=======================  Sources configuration ==========================
 
-#sources:
+sources:
 
 #--------------------- YAML file configuration source --------------------
 
 - type: YAML
   allowEdit: true
   properties:
+    # location: ${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/system-settings.yml
     location: system-settings.yml
 
 #------------------- Properties file configuration source ----------------

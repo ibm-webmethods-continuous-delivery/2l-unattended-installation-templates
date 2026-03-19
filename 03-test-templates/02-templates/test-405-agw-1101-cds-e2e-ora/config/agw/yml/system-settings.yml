@@ -3,7 +3,7 @@ apigw:
   elasticsearch:
     tenantId: core
     hosts: elasticsearch:9200
-    autostart: false
+    # autostart: false
     http:
       username: ${WMUI_TEST_ELASTIC_USERNAME}
       password: ${WMUI_TEST_ELASTIC_PASSWORD}
