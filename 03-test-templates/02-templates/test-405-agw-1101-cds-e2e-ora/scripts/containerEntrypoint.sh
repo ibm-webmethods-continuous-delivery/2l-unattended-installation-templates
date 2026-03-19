@@ -66,15 +66,21 @@ fi
             "${WMUI_TEST_UMGR_HOME_DIR}" ; then
       pu_log_e "[test-404-agw/containerEntrypoint] Failed to setup products and fixes from template"
       exit 3
-	else
-		mkdir -p /var/webmethods/audit/snapshots/beforeStart
-		cp -r "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway" "/var/webmethods/audit/snapshots/beforeStart"
+    else
+      mkdir -p /var/webmethods/audit/snapshots/beforeStart
+      cp -r "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway" "/var/webmethods/audit/snapshots/beforeStart"
     fi
   else
     pu_log_i "[test-404-agw/containerEntrypoint] API Gateway installation found, skipping setup."
   fi
 
 ## 05 Startup server
+  envsubst < /tmp/agw-yml/system-settings.yml \
+  > "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/system-settings.yml"
+
+  cp /tmp/agw-yml/config-sources.yml \
+    "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/"
+
   cd "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin" || exit 4
   nohup ./server.sh &
   __agw_pid=$!
