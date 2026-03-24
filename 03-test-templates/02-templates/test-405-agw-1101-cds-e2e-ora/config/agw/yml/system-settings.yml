@@ -11,5 +11,12 @@ apigw:
       enabled: false
   analyticsDataStore:
     tenantId: analytics
+    hosts: elasticsearch:9200
+    # autostart: false
+    http:
+      username: ${WMUI_TEST_ELASTIC_USERNAME}
+      password: ${WMUI_TEST_ELASTIC_PASSWORD}
+    https:
+      enabled: false
   kibana:
     dashboardInstance: http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}56
