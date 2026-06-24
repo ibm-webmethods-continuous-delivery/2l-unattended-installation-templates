@@ -1,12 +1,12 @@
-# Test Template: API Gateway 11.0.1 with CDS on Oracle (E2E)
+# Test Template: API Gateway 11.1 with CDS on Oracle (E2E)
 
 ## Overview
 
-This Docker Compose template provides a complete end-to-end testing environment for webMethods API Gateway 11.0.1 with Central Data Store (CDS) using Oracle database and Elasticsearch with security enabled.
+This Docker Compose template provides a complete end-to-end testing environment for webMethods API Gateway 11.1 with Central Directory Services (CDS) using Oracle database and Elasticsearch with security enabled.
 
 ## Components
 
-- **API Gateway (AGW)**: webMethods API Gateway 11.0.1
+- **API Gateway (AGW)**: webMethods API Gateway 11.1
 - **Oracle Database**: Oracle Database Free 23.5.0.0-lite
 - **Elasticsearch**: Two instances with X-Pack security enabled
 - **Kibana**: Dashboard and visualization tool
@@ -52,8 +52,6 @@ WMUI_TEST_ELASTIC_USERNAME=notelastic
 WMUI_TEST_NON_ELASTIC_USERNAME=notelastic
 WMUI_TEST_NON_ELASTIC_PASSWORD=your_secure_password
 ```
-
-**Note**: The docker-compose.yml currently has a typo on line 58 where `CUSTOM_ES_PASSWORD` is set to `${WMUI_TEST_NON_ELASTIC_USERNAME}` instead of `${WMUI_TEST_NON_ELASTIC_PASSWORD}`. This should be corrected.
 
 ### User Setup Process
 
@@ -172,7 +170,7 @@ docker-compose up -d
 
 1. **Strong Passwords**: Use complex passwords for all credentials
 2. **Separate Credentials**: Use different passwords for elastic and custom users
-3. **Least Privilege**: Modify `scripts/setup-es-users.sh` to grant only required permissions
+3. **Least Privilege**: Modify `scripts/setup-es-users.sh` to grant only required permissions. Open point: there is currently no documentation on this aspect.
 4. **Rotate Passwords**: Regularly update passwords in production
 5. **Enable TLS**: For production, enable HTTPS/TLS encryption
 6. **Audit Logging**: Enable Elasticsearch audit logging for compliance
@@ -190,7 +188,7 @@ docker-compose up -d
 ## Additional Resources
 
 - [Elasticsearch Security Documentation](https://www.elastic.co/guide/en/elasticsearch/reference/current/security-api.html)
-- [webMethods API Gateway Documentation](https://documentation.softwareag.com/)
+- [webMethods API Gateway Documentation](https://www.ibm.com/docs/en/wam/wm-api-gateway)
 - [Oracle Database Free Documentation](https://www.oracle.com/database/free/)
 
 ---
