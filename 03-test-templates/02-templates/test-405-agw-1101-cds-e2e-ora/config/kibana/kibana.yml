@@ -1,0 +1,16 @@
+# Default Kibana configuration for docker target
+server.host: "0.0.0.0"
+server.shutdownTimeout: "5s"
+elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+monitoring.ui.container.elasticsearch.enabled: true
+
+# Content Security Policy settings for iframe embedding
+csp.strict: false
+csp.warnLegacyBrowsers: false
+
+# Allow embedding in iframes (for API Gateway UI)
+server.securityResponseHeaders.disableEmbedding: false
+
+# Elasticsearch authentication (uses environment variables)
+# elasticsearch.username: set via ELASTICSEARCH_USERNAME env var
+# elasticsearch.password: set via ELASTICSEARCH_PASSWORD env var

@@ -11,6 +11,8 @@ volumes:
     name: test-405-db-data
   esdata:
     name: test-405-esdata
+  esdata2:
+    name: test-405-esdata2
 
 networks:
   n1:
@@ -46,12 +48,14 @@ services:
       - esdata:/usr/share/elasticsearch/data
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
+      - xpack.security.authc.api_key.enabled=true
       - http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
       - http.cors.enabled=true
       - http.cors.allow-origin=/.*/
-      - ELASTIC_USERNAME=${WMUI_TEST_ELASTIC_USERNAME}
       - ELASTIC_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
+      - CUSTOM_ES_USER=${WMUI_TEST_NON_ELASTIC_USERNAME}
+      - CUSTOM_ES_PASSWORD=${WMUI_TEST_NON_ELASTIC_USERNAME}
     ports:
       - ${WMUI_TEST_PORT_PREFIX}20:9200
     networks:
@@ -66,7 +70,59 @@ services:
     healthcheck:
       interval: 20s
       retries: 10
-      test: curl -s http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+      test: curl -s -u elastic:${WMUI_TEST_ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  elasticsearch2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_TEST_ELK_VERSION}
+    container_name: test-405-elasticsearch2
+
+    volumes:
+      - esdata2:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.authc.api_key.enabled=true
+      - http.cors.allow-headers=X-Requested-With,Content-Type,Content-Length,Authorization
+      - http.cors.enabled=true
+      - http.cors.allow-origin=/.*/
+      - ELASTIC_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
+      - CUSTOM_ES_USER=${WMUI_TEST_NON_ELASTIC_USERNAME}
+      - CUSTOM_ES_PASSWORD=${WMUI_TEST_NON_ELASTIC_PASSWORD}
+    ports:
+      - ${WMUI_TEST_PORT_PREFIX}21:9200
+    networks:
+      - n1
+    mem_reservation: 1g
+    mem_limit: 1g
+    cpus: 1
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      interval: 20s
+      retries: 10
+      test: curl -s -u elastic:${WMUI_TEST_ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -vq '"status":"red"'
+
+  # Setup custom Elasticsearch user on both instances
+  es-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${WMUI_TEST_ELK_VERSION}
+    container_name: test-405-es-setup
+    volumes:
+      - ./scripts/setup-es-users.sh:/setup-users.sh
+    environment:
+      - ELASTIC_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
+      - CUSTOM_ES_USER=${WMUI_TEST_NON_ELASTIC_USERNAME}
+      - CUSTOM_ES_PASSWORD=${WMUI_TEST_NON_ELASTIC_PASSWORD}
+    networks:
+      - n1
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      elasticsearch2:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/setup-users.sh"]
+    restart: "no"
 
   # Elasticvue content explorer for elasticsearch, use for observability reasons
   elasticvue:
@@ -89,16 +145,25 @@ services:
     depends_on:
       agw:
         condition: service_healthy
+      es-setup:
+        condition: service_completed_successfully
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - KIBANA_EXTERNAL_HOSTNAME=http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}56
-      - ELASTICSEARCH_USERNAME=${WMUI_TEST_ELASTIC_USERNAME}
+      # Use built-in kibana_system user (designed for Kibana service)
+      - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${WMUI_TEST_ELASTIC_PASSWORD}
       - SERVER_BASEPATH=/apigatewayui/dashboardproxy
       - CONSOLE_ENABLED=false
+      # CSP settings for iframe embedding
+      - CSP_STRICT=false
+      - CSP_WARNLEGACYBROWSERS=false
+      - SERVER_SECURITYRESPONSEHEADERS_DISABLEEMBEDDING=false
     ports:
       - ${WMUI_TEST_PORT_PREFIX}56:5601
+    volumes:
+      - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
     networks:
       - n1
     healthcheck:
@@ -167,6 +232,10 @@ services:
       # WMUI Level Options for this test harness
       - WMUI_PRODUCT_ONLINE_MODE
       - WMUI_TEST_PORT_PREFIX
+
+      # Not-Elastic username and password for elasticsearch connection
+      - WMUI_TEST_NON_ELASTIC_USERNAME
+      - WMUI_TEST_NON_ELASTIC_PASSWORD
     ports:
       - "${WMUI_TEST_PORT_PREFIX}55:5555"
       - "${WMUI_TEST_PORT_PREFIX}72:9072"
@@ -177,6 +246,8 @@ services:
       db:
         condition: service_healthy
       elasticsearch:
+        condition: service_healthy
+      elasticsearch2:
         condition: service_healthy
     healthcheck:
       interval: 20s

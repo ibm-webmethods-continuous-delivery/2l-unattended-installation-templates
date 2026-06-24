@@ -5,17 +5,17 @@ apigw:
     hosts: elasticsearch:9200
     # autostart: false
     http:
-      username: ${WMUI_TEST_ELASTIC_USERNAME}
-      password: ${WMUI_TEST_ELASTIC_PASSWORD}
+      username: ${WMUI_TEST_NON_ELASTIC_USERNAME}
+      password: ${WMUI_TEST_NON_ELASTIC_PASSWORD}
     https:
       enabled: false
   analyticsDataStore:
     tenantId: analytics
-    hosts: elasticsearch:9200
+    hosts: elasticsearch2:9200
     # autostart: false
     http:
-      username: ${WMUI_TEST_ELASTIC_USERNAME}
-      password: ${WMUI_TEST_ELASTIC_PASSWORD}
+      username: ${WMUI_TEST_NON_ELASTIC_USERNAME}
+      password: ${WMUI_TEST_NON_ELASTIC_PASSWORD}
     https:
       enabled: false
   kibana:

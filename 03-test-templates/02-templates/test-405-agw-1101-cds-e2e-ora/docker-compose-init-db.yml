@@ -33,7 +33,7 @@ services:
   dbc:
     image: ${WMUI_DBC_IMAGE}
     volumes:
-      - dbc-logs:${WMUI_DBC_LOGS_MOUNT_POINT}
+      # - dbc-logs:${WMUI_DBC_LOGS_MOUNT_POINT}
       - ./scripts/init/dbc/:${WMUI_DBC_SCRIPTS_MOUNT_POINT}
     networks:
       - n1

@@ -1,3 +1,6 @@
 #Integration Server logger settings
 #Thu Mar 19 11:45:20 GMT 2026
+YAI.0012=Trace
 YAI.0013=Trace
+YAI.0028=Trace
+YAI.0300=Trace

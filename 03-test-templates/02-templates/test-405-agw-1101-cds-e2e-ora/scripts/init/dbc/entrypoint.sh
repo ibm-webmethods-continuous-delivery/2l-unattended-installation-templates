@@ -72,7 +72,8 @@ echo "=======ENTRYPOINT============= Initializing the main schema ${WMUI_WM_DB_N
 
 echo "=======ENTRYPOINT============= Initializing the archive schema ${WMUI_WM_ARCHIVE_DB_NAME}..."
   __l_db_url="jdbc:wm:oracle://db:1521;serviceName=${ORACLE_CDB}"
-  __l_arc_components="${WMUI_WM_ARCHIVE_DB_COMPONENTS:-ActiveTransferArchive,Archive,ComponentTracker,TaskArchive,TradingNetworksArchive}"
+  #__l_arc_components="${WMUI_WM_ARCHIVE_DB_COMPONENTS:-ActiveTransferArchive,Archive,ComponentTracker,TaskArchive,TradingNetworksArchive}"
+  __l_arc_components="${WMUI_WM_ARCHIVE_DB_COMPONENTS:-all}"
 
   "${WMUI_DBC_WM_HOME}"/common/db/bin/dbConfigurator.sh \
   --action create \

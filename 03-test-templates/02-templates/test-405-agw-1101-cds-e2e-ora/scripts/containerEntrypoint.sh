@@ -25,13 +25,13 @@ fi
   . "${WMUI_HOME}/01-scripts/wmui-functions.sh"
 
 ## 02 Wait for database to be available
-    pu_log_i "[test-404-agw/containerEntrypoint] Waiting for database to be available..."
+    pu_log_i "[test-405-agw/containerEntrypoint] Waiting for database to be available..."
     while ! pu_port_is_reachable "${WMUI_TEST_DB_HOSTNAME}" "${WMUI_TEST_DB_PORT}"; do
-        pu_log_i "[test-404-agw/containerEntrypoint] Waiting for the database to come up, sleeping 5..."
+        pu_log_i "[test-405-agw/containerEntrypoint] Waiting for the database to come up, sleeping 5..."
         sleep 5
     done
     sleep 5 # allow some time to the DB in any case...
-    pu_log_i "[test-404-agw/containerEntrypoint] Database is available!"
+    pu_log_i "[test-405-agw/containerEntrypoint] Database is available!"
 
 ## 03 Bootstrap UMGR if not already present
     # Parameters - wmui_bootstrap_umgr
@@ -42,14 +42,14 @@ fi
             "${WMUI_TEST_UMGR_BOOTSTRAP_BIN}" \
             "${WMUI_TEST_FIXES_IMAGE_FILE}" \
             "${WMUI_TEST_UMGR_HOME_DIR}" ; then
-      pu_log_e "[test-404-agw/containerEntrypoint] Cannot bootstrap update manager, cannot continue (code $?)!"
+      pu_log_e "[test-405-agw/containerEntrypoint] Cannot bootstrap update manager, cannot continue (code $?)!"
       exit 2
     fi
 
 ## 04 Install API Gateway if not already present
   # Apply setup template if not present
   if [ ! -f "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin/server.sh" ]; then
-    pu_log_i "[test-404-agw/containerEntrypoint] API Gateway is not present, setting up ..."
+    pu_log_i "[test-405-agw/containerEntrypoint] API Gateway is not present, setting up ..."
     # Parameters
     # $1 - Template id
     # $2 - OPTIONAL: use latest versions (default passthrough to wmui_install_template_products)
@@ -64,14 +64,14 @@ fi
             "" \
             "${WMUI_TEST_FIXES_IMAGE_FILE}" \
             "${WMUI_TEST_UMGR_HOME_DIR}" ; then
-      pu_log_e "[test-404-agw/containerEntrypoint] Failed to setup products and fixes from template"
+      pu_log_e "[test-405-agw/containerEntrypoint] Failed to setup products and fixes from template"
       exit 3
     else
       mkdir -p /var/webmethods/audit/snapshots/beforeStart
       cp -r "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway" "/var/webmethods/audit/snapshots/beforeStart"
     fi
   else
-    pu_log_i "[test-404-agw/containerEntrypoint] API Gateway installation found, skipping setup."
+    pu_log_i "[test-405-agw/containerEntrypoint] API Gateway installation found, skipping setup."
   fi
 
 ## 05 Startup server
@@ -83,23 +83,32 @@ fi
     < /tmp/agw-yml/config-sources.yml \
     > "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/config-sources.yml"
 
+  po_log_d "[test-405-agw/containerEntrypoint] Dumping config files after envsubst"
+
+  cat "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/packages/WmAPIGateway/resources/configuration/"*
+
   cp /tmp/agw-config/* "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/config"/
+
+  if [ -f "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin/.lock" ]; then
+    pu_log_i "[test-405-agw/containerEntrypoint] Integration Server lock file found, dirty stop?"
+    rm -rf "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin/.lock"
+  fi
 
   cd "${WMUI_WMSCRIPT_InstallDir}/IntegrationServer/bin" || exit 4
   nohup ./server.sh &
   __agw_pid=$!
 
-  pu_log_i "[test-404-agw/containerEntrypoint] =================================================="
-  pu_log_i "[test-404-agw/containerEntrypoint] API Gateway with CDS Test Harness"
-  pu_log_i "[test-404-agw/containerEntrypoint] =================================================="
-  pu_log_i "[test-404-agw/containerEntrypoint] Integration Server Admin: http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}55"
-  pu_log_i "[test-404-agw/containerEntrypoint] API Gateway HTTP: http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}72"
-  pu_log_i "[test-404-agw/containerEntrypoint] API Gateway HTTPS: https://host.docker.internal:${WMUI_TEST_PORT_PREFIX}73"
-  pu_log_i "[test-404-agw/containerEntrypoint] Database Admin (Adminer): http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}80"
-  pu_log_i "[test-404-agw/containerEntrypoint] =================================================="
-  pu_log_i "[test-404-agw/containerEntrypoint] Database: ${WMUI_TEST_DB_HOSTNAME}:${WMUI_TEST_DB_PORT}/${WMUI_TEST_DB_NAME}"
-  pu_log_i "[test-404-agw/containerEntrypoint] User: ${WMUI_WM_DB_USER_NAME}"
-  pu_log_i "[test-404-agw/containerEntrypoint] =================================================="
+  pu_log_i "[test-405-agw/containerEntrypoint] =================================================="
+  pu_log_i "[test-405-agw/containerEntrypoint] API Gateway with CDS Test Harness"
+  pu_log_i "[test-405-agw/containerEntrypoint] =================================================="
+  pu_log_i "[test-405-agw/containerEntrypoint] Integration Server Admin: http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}55"
+  pu_log_i "[test-405-agw/containerEntrypoint] API Gateway HTTP: http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}72"
+  pu_log_i "[test-405-agw/containerEntrypoint] API Gateway HTTPS: https://host.docker.internal:${WMUI_TEST_PORT_PREFIX}73"
+  pu_log_i "[test-405-agw/containerEntrypoint] Database Admin (Adminer): http://host.docker.internal:${WMUI_TEST_PORT_PREFIX}80"
+  pu_log_i "[test-405-agw/containerEntrypoint] =================================================="
+  pu_log_i "[test-405-agw/containerEntrypoint] Database: ${WMUI_TEST_DB_HOSTNAME}:${WMUI_TEST_DB_PORT}/${WMUI_TEST_DB_NAME}"
+  pu_log_i "[test-405-agw/containerEntrypoint] User: ${WMUI_WM_DB_USER_NAME}"
+  pu_log_i "[test-405-agw/containerEntrypoint] =================================================="
 
   wait ${__agw_pid}
 
