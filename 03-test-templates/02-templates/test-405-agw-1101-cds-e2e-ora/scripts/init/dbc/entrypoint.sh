@@ -75,6 +75,8 @@ echo "=======ENTRYPOINT============= Initializing the archive schema ${WMUI_WM_A
   #__l_arc_components="${WMUI_WM_ARCHIVE_DB_COMPONENTS:-ActiveTransferArchive,Archive,ComponentTracker,TaskArchive,TradingNetworksArchive}"
   __l_arc_components="${WMUI_WM_ARCHIVE_DB_COMPONENTS:-all}"
 
+echo "Components to set up in the archive database: ${__l_arc_components}"
+
   "${WMUI_DBC_WM_HOME}"/common/db/bin/dbConfigurator.sh \
   --action create \
   --dbms oracle \
@@ -89,5 +91,3 @@ echo "=======ENTRYPOINT============= Initializing the archive schema ${WMUI_WM_A
   --password "${WMUI_WM_ARCHIVE_DB_USER_PASS}"
 
 unset __l_db_url __l_components __l_arc_components
-
-# Made with Bob

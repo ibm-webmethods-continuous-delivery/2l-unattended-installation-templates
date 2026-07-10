@@ -27,6 +27,8 @@
   mkdir -p "${__work_dir}"
   cd "${__work_dir}" || exit 1
 
+  # TODO: with the 12 version the "latest" rule does not work as before. To adapt the tests adding the option 11 vs 12
+
   if ! wmui_assure_default_installer "${WMUI_TEST_INSTALLER_BIN}" ; then
     pu_log_w "Default installer not assured! Eventually clean the output folder."
     __err_no=$((__err_no+1))

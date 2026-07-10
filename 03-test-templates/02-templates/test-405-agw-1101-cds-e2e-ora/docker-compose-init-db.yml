@@ -49,6 +49,7 @@ services:
       - WMUI_WM_DB_NAME
       - WMUI_WM_DB_USER_NAME
       - WMUI_WM_DB_USER_PASS
+      - WMUI_WM_ARCHIVE_DB_COMPONENTS=all
       - ORACLE_CDB
       - ORACLE_PDB
       - ORACLE_PWD
