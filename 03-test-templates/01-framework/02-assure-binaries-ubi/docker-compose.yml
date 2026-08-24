@@ -3,18 +3,21 @@ services:
     # downloader service
     # Prerequisite: build image first, using
     # https://github.com/ibm-webmethods-continuous-delivery/7u-container-images/blob/main/images/u/ubi9/vm-emu/minimal/build-local-wmui.bat
-    image: vm-emu-min-local-wmui-u:ubi9
+    image: iwcd-vm-emu-min-wmui-u:ubi9
+    platform: linux/amd64
     volumes:
       - ../../../:/opt/iwcd/wmui
       - ./scripts/:/mnt/scripts
-      - ${H_WMUI_ARTIFACTS_DIR}:/mnt/artifacts/
+      - ${H_WMUI_ARTIFACTS_DIR}:${TEST_ARTIFACTS_HOME}
       - install-home:/opt/webmethods
       - audit-home:/var/webmethods/audit
       - umgr-home:/opt/wm-upd-mgr-v11
       - wm-user-home:/home/webmethods
     environment:
-      - TEST_INSTALLER_BIN=/mnt/artifacts/default-installer.bin
-      - TEST_UMGR_BIN=/mnt/artifacts/default-umgr-bootstrap.bin
+      - TEST_INSTALLER_V11_BIN=${TEST_ARTIFACTS_HOME}/default-installer-v11.bin
+      - TEST_UMGR_V11_BIN=${TEST_ARTIFACTS_HOME}/default-umgr-bootstrap-v11.bin
+      - TEST_INSTALLER_V12_BIN=${TEST_ARTIFACTS_HOME}/default-installer-v12.bin
+      - TEST_UMGR_V12_BIN=${TEST_ARTIFACTS_HOME}/default-umgr-bootstrap-v12.bin
     entrypoint: /mnt/scripts/entrypoint.sh
 
 volumes:

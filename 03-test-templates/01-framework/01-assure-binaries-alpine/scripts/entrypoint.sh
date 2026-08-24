@@ -16,8 +16,13 @@ apk add --no-cache curl
 
 __err_no=0
 
-wmui_assure_default_installer "${TEST_INSTALLER_BIN}" || __err_no=$((__err_no+1))
-wmui_assure_default_umgr_bin "${TEST_UMGR_BIN}" || __err_no=$((__err_no+1))
+wmui_assure_default_installer "${TEST_INSTALLER_V12_BIN}" || __err_no=$((__err_no+1))
+wmui_assure_default_umgr_bin "${TEST_UMGR_V12_BIN}" || __err_no=$((__err_no+1))
+export WMUI_WM_MAJOR_VERSION=11
+# shellcheck source=../../../../01-scripts/wmui-functions.sh
+. "${WMUI_HOME}/01-scripts/wmui-functions.sh"
+wmui_assure_default_installer "${TEST_INSTALLER_V11_BIN}" || __err_no=$((__err_no+1))
+wmui_assure_default_umgr_bin "${TEST_UMGR_V11_BIN}" || __err_no=$((__err_no+1))
 
 pu_log_i "Returning exit code $__err_no"
 

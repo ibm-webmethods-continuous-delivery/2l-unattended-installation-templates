@@ -34,11 +34,35 @@ _init() {
   __wmui_default_output_folder=${__wmui_default_artifacts_folder}/images
   __wmui_default_output_folder_fixes=${__wmui_default_artifacts_folder}/images/fixes
 
+  # Specialize major version due to parallel versions of installer and update manager
+  __wmui_wm_major_version=${WMUI_WM_MAJOR_VERSION:-12}
+
   # Default values - URLs and checksums
-  __wmui_default_installer_url='https://delivery04.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin'
-  __wmui_default_installer_sha256='07ecdff4efe4036cb5ef6744e1a60b0a7e92befed1a00e83b5afe9cdfd6da8d3'
-  __wmui_default_umgr_url='https://delivery04.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin'
-  __wmui_default_umgr_sha256='a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55'
+  if [ $__wmui_wm_major_version -eq 11 ]; then
+    # Default values for v10 and v11
+    __wmui_default_installer_url='https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin'
+    __wmui_default_installer_sha256='07ecdff4efe4036cb5ef6744e1a60b0a7e92befed1a00e83b5afe9cdfd6da8d3'
+    __wmui_default_umgr_url='https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin'
+    __wmui_default_umgr_sha256='a997a690c00efbb4668323d434fa017a05795c6bf6064905b640fa99a170ff55'
+  else
+    # Default values for v12
+    __wmui_default_installer_url='https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0dzd0/1/IBM_webMethods_Install_Linux_x64.bin'
+    __wmui_default_installer_sha256="${WMUI_GIVEN_INSTALLER_SHA256:-5ab055ba9bc08831df2f55762ac463087d231913b6a2d4f7fa77c96b09b005d3}"
+    __wmui_default_umgr_url='https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0dzd5/0/IBM_webMethods_Update_Mnger_Linux_x64.bin'
+    __wmui_default_umgr_sha256='f95f3f889dc1bdbef2a36a5b29f161de2829c957762d5be7b251364eed8de006'
+  fi
+  # Notes on fix central downloads / status on 2026-08-24
+    ## Installer
+    ### 10.11 - released 2025/10/30 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin
+    ### 10.15 - released 2025/10/30 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin
+    ### 11.01 - released 2025/10/30 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0cx80/2/IBM_webMethods_Install_Linux_x64.bin
+    ### 12.01 - released 2026/07/27 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0dzd0/1/IBM_webMethods_Install_Linux_x64.bin
+
+    ## Update Manager
+    ### 09.12 - released 2025/07/28 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0d7vm/0/Legacy_IBM_webMethods_Update_Manager_Linux_x64.bin
+    ### 10.15 - released 2025/04/30 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin
+    ### 11.01 - released 2025/04/30 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0crqw/0/IBM_webMethods_Update_Mnger_Linux_x64.bin
+    ### 12.01 - released 2026/05/08 - https://delivery04-mul.dhe.ibm.com/sar/CMA/OSA/0dzd5/0/IBM_webMethods_Update_Mnger_Linux_x64.bin
 
   # Default values - Version and platform for Update Manager inventory files
   __wmui_default_umgr_version_string='27.1.0'
@@ -472,7 +496,9 @@ wmui_generate_products_zip_from_list() {
   if [ $l_create_result -ne 0 ]; then
     pu_log_e "WMUI|21| Image ${l_products_zip} creation failed with result: ${l_create_result}"
     pu_log_e "WMUI|21| Saving the ephemeral script into the output folder..."
-    mv "${l_ephemeral_script}" "${__wmui_temp_fs_quick}/WMUI/setup/${l_epoch}"/
+    local __audit_dir="${__2__audit_session_dir:-/tmp/WMUI_AUDIT}/${l_epoch}"
+    mkdir -p "${__audit_dir}"
+    mv "${l_ephemeral_script}" "${__audit_dir}"/
     if [ -f "${l_products_zip}" ]; then
       pu_log_e "WMUI|21| Moving away the resulting file, most likely corrupted or incomplete."
       mv "${l_products_zip}" "${l_products_zip}.${l_epoch}.err.zip"
