@@ -178,6 +178,7 @@ services:
     image: iwcd-vm-emu-min-local-wmui-u:ubi9
     container_name: test-405-agw
     hostname: ${WMUI_WMSCRIPT_HostName}
+    platform: linux/amd64
     volumes:
       - audit:/var/webmethods/audit
       - sum-home:/opt/wm-umgr
