@@ -437,7 +437,11 @@ wmui_generate_products_zip_from_list() {
         l_sdc_server_url=${WMUI_SDC_SERVER_URL_1101:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
         ;;
       *)
-        l_sdc_server_url=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
+        if [ $__wmui_wm_major_version -eq 11 ]; then
+          l_sdc_server_url=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM111.cgi"}
+        else
+          l_sdc_server_url=${WMUI_SDC_SERVER_URL_DEFAULT:-"https\://sdc.webmethods.io/cgi-bin/dataservewebM121.cgi"}
+        fi
         ;;
     esac
 

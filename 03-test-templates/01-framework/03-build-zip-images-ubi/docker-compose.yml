@@ -9,6 +9,7 @@ services:
     image: wmui-zip-img-builder
     build: ./build
     container_name: wmui-zip-img-builder
+    platform: linux/amd64
     volumes:
       # image predefined mount-points
       - audit:${WMUI_TEST_AUDIT_DIR}
@@ -34,4 +35,5 @@ services:
       - WMUI_TEST_UMGR_BOOTSTRAP_BIN
       - WMUI_TEST_USE_LATEST_PRODUCTS_LIST
       - WMUI_TEST_UNION_ZIPS_ONLY
+      - WMUI_WM_MAJOR_VERSION
     entrypoint: ${WMUI_TEST_SCRIPTS_DIR}/entrypoint.sh
